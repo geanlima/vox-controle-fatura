@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      # Hosts permitidos pelo SSR (proteção SSRF). Inclua o Host do navegador se não for localhost.
+      NG_ALLOWED_HOSTS: localhost,127.0.0.1
+    restart: unless-stopped

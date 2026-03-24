@@ -1,0 +1,178 @@
+<div class="pagina" *ngIf="fatura(); else semDados">
+  <div class="topo">
+    <div>
+      <h1>Dashboard da Fatura</h1>
+      <p>
+        <strong>{{ fatura()?.banco }}</strong>
+        · {{ fatura()?.cartao }}
+        · {{ fatura()?.competencia }}
+      </p>
+    </div>
+
+    <button mat-raised-button color="primary" (click)="voltarImportacao()">
+      Voltar para importação
+    </button>
+  </div>
+
+  <mat-card class="bloco-analise" *ngIf="insights().length > 0">
+    <mat-card-header>
+      <mat-card-title>Análise da fatura</mat-card-title>
+      <mat-card-subtitle>Sugestões com base nos seus lançamentos reais (sem simulação)</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <ul class="lista-insights">
+        <li *ngFor="let item of insights()" [class]="'insight insight-' + item.tipo">
+          {{ item.texto }}
+        </li>
+      </ul>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="bloco-simulacao">
+    <mat-card-header>
+      <mat-card-title>Simular uma compra</mat-card-title>
+      <mat-card-subtitle
+        >Lance um valor antes de comprar e veja como o total, o gráfico e as categorias mudam — é só uma
+        projeção.</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      <div class="linha-toggle">
+        <mat-slide-toggle
+          [checked]="simulacaoAtiva()"
+          (change)="simulacaoAtiva.set($event.checked)">
+          Incluir compra simulada nos números abaixo
+        </mat-slide-toggle>
+      </div>
+
+      <div class="form-sim" *ngIf="simulacaoAtiva()">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Valor (R$)</mat-label>
+          <input
+            matInput
+            [value]="simValorTexto()"
+            (input)="simValorTexto.set($any($event.target).value)"
+            placeholder="Ex.: 350,00 ou -120,00"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo campo-grande">
+          <mat-label>Descrição (para classificar)</mat-label>
+          <input
+            matInput
+            [value]="simDescricao()"
+            (input)="simDescricao.set($any($event.target).value)"
+            placeholder="Ex.: Supermercado, Uber, farmácia..."
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Categoria</mat-label>
+          <mat-select
+            [value]="simCategoriaEscolha()"
+            (selectionChange)="simCategoriaEscolha.set($event.value)"
+            placeholder="Automática pela descrição">
+            <mat-option value="">Automática (pela descrição)</mat-option>
+            <mat-option *ngFor="let c of categoriasOpcoes" [value]="c">{{ c }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button color="warn" type="button" (click)="limparSimulacao()">
+          Limpar simulação
+        </button>
+      </div>
+
+      <p *ngIf="simulacaoAtiva() && deltaSimulacao() !== 0" class="delta-sim">
+        <strong>Impacto na fatura:</strong> {{ deltaSimulacao() | currency:'BRL' }}
+        <span class="delta-hint">(diferença em relação ao total importado)</span>
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="cards-resumo">
+    <mat-card class="card">
+      <mat-card-content>
+        <div class="titulo">Total da Fatura</div>
+        <div class="valor">{{ totalGasto() | currency:'BRL' }}</div>
+        <div class="subtitulo-card" *ngIf="simulacaoAtiva() && deltaSimulacao() !== 0">
+          Real: {{ totalGastoReal() | currency:'BRL' }}
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="card">
+      <mat-card-content>
+        <div class="titulo">Lançamentos</div>
+        <div class="valor">{{ totalLancamentos() }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="card">
+      <mat-card-content>
+        <div class="titulo">Ticket Médio</div>
+        <div class="valor">{{ ticketMedio() | currency:'BRL' }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="card" *ngIf="maiorCategoria() as maior">
+      <mat-card-content>
+        <div class="titulo">Maior Categoria</div>
+        <div class="valor menor">{{ maior.categoria }}</div>
+        <div class="subvalor">{{ maior.total | currency:'BRL' }}</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="grid">
+    <mat-card class="painel">
+      <mat-card-header>
+        <mat-card-title>Distribuição por categoria</mat-card-title>
+        <mat-card-subtitle *ngIf="simulacaoAtiva()">Inclui a compra simulada</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="grafico-wrapper">
+          <canvas #graficoCategorias></canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="painel">
+      <mat-card-header>
+        <mat-card-title>Resumo por categoria</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="tabela-categorias">
+          <div class="linha head">
+            <div>Categoria</div>
+            <div>Total</div>
+            <div>%</div>
+            <div>Qtd</div>
+            <div>Ticket Médio</div>
+          </div>
+
+          <div class="linha" *ngFor="let item of resumoPorCategoria()">
+            <div>{{ item.categoria }}</div>
+            <div>{{ item.total | currency:'BRL' }}</div>
+            <div>{{ item.percentual | percent:'1.0-1' }}</div>
+            <div>{{ item.quantidade }}</div>
+            <div>{{ item.ticketMedio | currency:'BRL' }}</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<ng-template #semDados>
+  <div class="pagina">
+    <mat-card>
+      <mat-card-content>
+        <h2>Nenhuma fatura carregada</h2>
+        <p>Importe uma fatura primeiro para visualizar o dashboard.</p>
+        <button mat-raised-button color="primary" (click)="voltarImportacao()">
+          Ir para importação
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</ng-template>

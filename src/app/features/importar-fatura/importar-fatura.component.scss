@@ -1,0 +1,135 @@
+.pagina {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.grid-principal {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.painel mat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-arquivo {
+  width: 100%;
+}
+
+.form-manual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+
+  .campo-data {
+    grid-column: 1;
+  }
+
+  .campo-desc {
+    grid-column: 1 / -1;
+  }
+
+  .campo-cidade,
+  .campo-valor {
+    grid-column: span 1;
+  }
+
+  button[type='button'] {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+
+    .campo-data,
+    .campo-desc,
+    .campo-cidade,
+    .campo-valor {
+      grid-column: 1;
+    }
+  }
+}
+
+.acoes,
+.acoes-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.erro {
+  color: #b00020;
+  margin: 0;
+  font-weight: 500;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
+.card-resumo .total-destaque {
+  font-size: 1.1rem;
+}
+
+.resumo-linhas p {
+  margin: 0.35rem 0;
+}
+
+.tabela {
+  .cel-desc {
+    white-space: pre-line;
+    max-width: 280px;
+  }
+}
+
+.valor-negativo {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.aviso-duplicata {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+
+  p {
+    margin: 8px 0 0;
+  }
+}
+
+.tag-revisar {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffe082;
+  color: #5d4037;
+}
+
+:host ::ng-deep tr.linha-possivel-duplicata {
+  background-color: rgba(255, 193, 7, 0.12);
+}
+
+:host ::ng-deep tr.linha-possivel-duplicata:hover {
+  background-color: rgba(255, 193, 7, 0.22);
+}

@@ -1,0 +1,137 @@
+<div class="pagina">
+  <div class="grid-principal">
+    <mat-card class="painel">
+      <mat-card-header>
+        <mat-card-title>Importar PDF</mat-card-title>
+        <mat-card-subtitle>
+          Extrai lançamentos do arquivo. Ao processar um novo PDF, a lista passa a ser a do arquivo (use lançamentos manuais depois para complementar).
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <input type="file" accept="application/pdf" (change)="onFileSelected($event)" class="input-arquivo" />
+
+        <div class="acoes">
+          <button mat-raised-button color="primary" (click)="importarPdf()" [disabled]="carregando">
+            {{ carregando ? 'Importando...' : 'Processar PDF' }}
+          </button>
+        </div>
+
+        <p *ngIf="erro" class="erro">{{ erro }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="painel">
+      <mat-card-header>
+        <mat-card-title>Lançamento manual</mat-card-title>
+        <mat-card-subtitle>Inclua compras ou ajustes que não vieram no PDF</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content class="form-manual">
+        <mat-form-field appearance="outline" class="campo-data">
+          <mat-label>Data (DD/MM)</mat-label>
+          <input matInput [(ngModel)]="dataManual" placeholder="15/03" maxlength="5" name="dataManual" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-desc">
+          <mat-label>Descrição</mat-label>
+          <input matInput [(ngModel)]="descricaoManual" name="descricaoManual" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-cidade">
+          <mat-label>Cidade (opcional)</mat-label>
+          <input matInput [(ngModel)]="cidadeManual" name="cidadeManual" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-valor">
+          <mat-label>Valor (R$)</mat-label>
+          <input matInput [(ngModel)]="valorManual" placeholder="120,50 ou -30,00" name="valorManual" />
+        </mat-form-field>
+
+        <button mat-raised-button color="accent" type="button" (click)="adicionarLancamentoManual()">
+          Adicionar lançamento
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <mat-card *ngIf="temLancamentos()" class="mt-16 card-resumo">
+    <mat-card-header>
+      <mat-card-title>Resumo da fatura</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="resumo-linhas" *ngIf="resultado as r">
+        <p><strong>Banco:</strong> {{ r.banco }}</p>
+        <p><strong>Cartão:</strong> {{ r.cartao }}</p>
+        <p><strong>Competência:</strong> {{ r.competencia }}</p>
+        <p class="total-destaque"><strong>Total:</strong> {{ r.totalFatura | currency:'BRL' }}</p>
+      </div>
+
+      <div class="acoes-barra">
+        <button mat-raised-button color="primary" (click)="irParaDashboard()">Ver dashboard</button>
+      </div>
+
+      <div *ngIf="temPossivelDuplicata()" class="aviso-duplicata">
+        <strong>Possível duplicidade</strong>
+        <p>
+          {{ contagemLancamentosDuplicados() }} lançamento(s) com a
+          <strong>mesma data e o mesmo valor</strong> (linhas em destaque). Podem ser cópias do extrato ou compras
+          diferentes — revise as descrições e remova só o que for realmente repetido.
+        </p>
+      </div>
+
+      <table mat-table [dataSource]="resultado!.lancamentos" class="full-width mat-elevation-z2 mt-16 tabela">
+        <ng-container matColumnDef="data">
+          <th mat-header-cell *matHeaderCellDef>Data</th>
+          <td mat-cell *matCellDef="let item">{{ item.data }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="descricao">
+          <th mat-header-cell *matHeaderCellDef>Descrição</th>
+          <td mat-cell *matCellDef="let item" class="cel-desc">{{ item.descricao }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="cidade">
+          <th mat-header-cell *matHeaderCellDef>Cidade</th>
+          <td mat-cell *matCellDef="let item">{{ item.cidade }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="categoriaSugerida">
+          <th mat-header-cell *matHeaderCellDef>Categoria</th>
+          <td mat-cell *matCellDef="let item">{{ item.categoriaSugerida }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="valor">
+          <th mat-header-cell *matHeaderCellDef>Valor</th>
+          <td
+            mat-cell
+            *matCellDef="let item"
+            [class.valor-negativo]="isValorNegativo(item.valor)">
+            {{ item.valor | currency:'BRL' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="revisao">
+          <th mat-header-cell *matHeaderCellDef>Revisão</th>
+          <td mat-cell *matCellDef="let item">
+            <span *ngIf="ehPossivelDuplicataDataValor(item)" class="tag-revisar">Mesma data/valor</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acoes">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let item">
+            <button mat-button color="warn" type="button" (click)="removerLancamento(item)">Remover</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.linha-possivel-duplicata]="ehPossivelDuplicataDataValor(row)"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</div>

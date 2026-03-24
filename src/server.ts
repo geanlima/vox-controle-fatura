@@ -11,8 +11,19 @@ import { fileURLToPath } from 'node:url';
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 
+/** Hostnames permitidos para SSR (evita erro SSRF com localhost no Docker/local). Veja NG_ALLOWED_HOSTS. */
+function allowedHostsFromEnv(): readonly string[] {
+  const raw = process.env['NG_ALLOWED_HOSTS']?.trim();
+  if (raw) {
+    return raw.split(',').map((h) => h.trim()).filter((h) => h.length > 0);
+  }
+  return ['localhost', '127.0.0.1'];
+}
+
 const app = express();
-const angularApp = new AngularNodeAppEngine();
+const angularApp = new AngularNodeAppEngine({
+  allowedHosts: allowedHostsFromEnv(),
+});
 
 /**
  * Example Express Rest API endpoints can be defined here.

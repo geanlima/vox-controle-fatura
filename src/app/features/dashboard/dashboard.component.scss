@@ -1,0 +1,189 @@
+.pagina {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.bloco-analise,
+.bloco-simulacao {
+  margin-bottom: 20px;
+}
+
+.lista-insights {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.insight {
+  margin-bottom: 0.75rem;
+  line-height: 1.45;
+}
+
+.insight-alerta {
+  color: #b45309;
+}
+
+.insight-info {
+  color: #1d4ed8;
+}
+
+.insight-ok {
+  color: #15803d;
+}
+
+.linha-toggle {
+  margin-bottom: 12px;
+}
+
+.form-sim {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-top: 8px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+
+  .campo-grande {
+    grid-column: span 1;
+  }
+
+  button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+.campo {
+  width: 100%;
+}
+
+.delta-sim {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #e8f4fd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.delta-hint {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+.subtitulo-card {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin-top: 6px;
+}
+
+.topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .cards-resumo {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .card {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .titulo {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 8px;
+  }
+  
+  .valor {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  
+  .valor.menor {
+    font-size: 22px;
+  }
+  
+  .subvalor {
+    margin-top: 8px;
+    font-size: 16px;
+    opacity: 0.8;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 16px;
+  }
+  
+  .painel {
+    min-height: 420px;
+  }
+  
+  .grafico-wrapper {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 16px 0;
+  }
+  
+  .tabela-categorias {
+    width: 100%;
+  }
+  
+  .linha {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 0.7fr 0.5fr 1fr;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+  }
+  
+  .linha.head {
+    font-weight: 700;
+    border-bottom: 2px solid #d1d5db;
+  }
+  
+  @media (max-width: 1100px) {
+    .cards-resumo {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 700px) {
+    .topo {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .cards-resumo {
+      grid-template-columns: 1fr;
+    }
+  
+    .linha {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+  
+    .linha.head {
+      display: none;
+    }
+  }
