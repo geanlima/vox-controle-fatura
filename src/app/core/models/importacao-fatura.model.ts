@@ -13,6 +13,7 @@ export interface LancamentoImportado {
   export interface FaturaImportada {
     banco: string;
     cartao: string;
+  cartaoId?: string | null;
     competencia: string;
     totalFatura: number;
     lancamentos: LancamentoImportado[];

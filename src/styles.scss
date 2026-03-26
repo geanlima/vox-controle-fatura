@@ -1,4 +1,197 @@
-/* You can add global styles to this file, and also import other style files */
+html,
+body {
+  height: 100%;
+}
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background:
+    radial-gradient(1200px 620px at 12% 0%, rgba(59, 130, 246, 0.16), transparent 55%),
+    radial-gradient(900px 520px at 92% 18%, rgba(168, 85, 247, 0.14), transparent 60%),
+    #f3f6ff;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* Design tokens */
+:root {
+  --bg: #f3f6ff;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-solid: #ffffff;
+  --border: rgba(0, 0, 0, 0.10);
+  --shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 18px 42px rgba(0, 0, 0, 0.12);
+  --radius-xl: 22px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --text: rgba(0, 0, 0, 0.87);
+  --muted: rgba(0, 0, 0, 0.62);
+
+  --primary: #2563eb;
+  --primary-2: #60a5fa;
+  --purple: #7c3aed;
+  --yellow: #f59e0b;
+  --green: #10b981;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 22px 18px 30px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+.card {
+  border-radius: 16px;
+}
+
+.elev {
+  box-shadow: var(--shadow);
+}
+
+.muted {
+  opacity: 0.75;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(37, 99, 235, 0.12);
+  color: rgba(37, 99, 235, 0.95);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.table-wrap {
+  overflow: auto;
+  border-radius: 14px;
+}
+
+.mat-mdc-card {
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Allow special cards to keep their own backgrounds */
+.mat-mdc-card.stat,
+.mat-mdc-card.card-visual {
+  background: unset;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+}
+
+/* Make form-fields look cleaner */
+.mat-mdc-form-field .mdc-text-field--outlined {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+}
+
+.mat-mdc-form-field .mdc-notched-outline__leading,
+.mat-mdc-form-field .mdc-notched-outline__notch,
+.mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.mat-mdc-form-field:hover .mdc-notched-outline__leading,
+.mat-mdc-form-field:hover .mdc-notched-outline__notch,
+.mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Table header polish */
+.mat-mdc-header-row .mat-mdc-header-cell {
+  background: rgba(255, 255, 255, 0.75);
+  font-weight: 800;
+}
+
+.mat-toolbar.mat-primary {
+  background: rgba(243, 246, 255, 0.78) !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Gradient stat cards */
+.stat {
+  position: relative;
+  border-radius: var(--radius-xl);
+  color: rgba(11, 18, 32, 0.95);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.stat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(420px 220px at 10% 20%, rgba(255, 255, 255, 0.55), transparent 62%),
+    radial-gradient(520px 240px at 90% 10%, rgba(255, 255, 255, 0.35), transparent 60%);
+  pointer-events: none;
+}
+
+.stat-blue {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 60%, #93c5fd 100%);
+}
+.stat-green {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 60%, #86efac 100%);
+}
+.stat-yellow {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 60%, #fbbf24 100%);
+}
+.stat-purple {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%);
+}
+
+.mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.mat-mdc-table {
+  background: transparent;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  background: rgba(0, 0, 0, 0.03);
+}

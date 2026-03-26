@@ -1,70 +1,86 @@
 .pagina {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0;
 }
 
-.grid-principal {
+.page.pagina {
+  padding-bottom: 72px;
+}
+
+.import-wrap {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 18px;
+  max-width: 980px;
+  margin: 0;
+}
 
-  @media (min-width: 900px) {
-    grid-template-columns: 1fr 1fr;
-  }
+.painel {
+  overflow: visible;
+}
+
+.painel mat-card-header {
+  padding-bottom: 6px;
+}
+
+.painel mat-card-subtitle {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 14px;
+  line-height: 1.45;
 }
 
 .painel mat-card-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  padding-bottom: 18px;
+}
+
+.painel {
+  margin-bottom: 10px;
+}
+
+.painel mat-form-field {
+  width: 100%;
 }
 
 .input-arquivo {
   width: 100%;
 }
 
-.form-manual {
+.form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 18px;
   align-items: start;
+}
 
-  .campo-data {
-    grid-column: 1;
-  }
+.file-box {
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  background: rgba(243, 246, 255, 0.55);
+  margin-bottom: 6px;
+}
 
-  .campo-desc {
-    grid-column: 1 / -1;
-  }
+.file-title {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
 
-  .campo-cidade,
-  .campo-valor {
-    grid-column: span 1;
-  }
-
-  button[type='button'] {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-
-    .campo-data,
-    .campo-desc,
-    .campo-cidade,
-    .campo-valor {
-      grid-column: 1;
-    }
-  }
+.file-sub {
+  margin-top: 4px;
+  opacity: 0.72;
+  font-size: 13px;
+  line-height: 1.35;
+  margin-bottom: 10px;
 }
 
 .acoes,
 .acoes-barra {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -74,12 +90,22 @@
   font-weight: 500;
 }
 
+.sucesso {
+  color: #1b5e20;
+  margin: 0;
+  font-weight: 600;
+}
+
 .full-width {
   width: 100%;
 }
 
 .mt-16 {
-  margin-top: 16px;
+  margin-top: 18px;
+}
+
+.card-resumo {
+  max-width: 1100px;
 }
 
 .card-resumo .total-destaque {

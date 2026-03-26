@@ -1,8 +1,91 @@
-<mat-toolbar color="primary">
-  <span>Controle de Fatura</span>
-  <span style="flex: 1 1 auto;"></span>
-  <a mat-button routerLink="/importar">Importar</a>
-  <a mat-button routerLink="/dashboard">Dashboard</a>
-</mat-toolbar>
+<mat-sidenav-container class="app-shell">
+  <mat-sidenav
+    #sidenav
+    class="rail"
+    [mode]="isDesktop() ? 'side' : 'over'"
+    [opened]="isDesktop()"
+    [autoFocus]="false">
+    <div class="side-top">
+      <div class="logo">
+        <div class="logo-badge">V</div>
+        <div class="logo-text">
+          <div class="logo-title">vox</div>
+          <div class="logo-sub">controle fatura</div>
+        </div>
+      </div>
 
-<router-outlet></router-outlet>
+      <div class="profile">
+        <div class="avatar">G</div>
+        <div class="who">
+          <div class="name">Gean</div>
+          <div class="email">offline&#64;local</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-nav">
+      <div class="nav-title">Menu</div>
+
+      <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <span matListItemTitle>Dashboard</span>
+      </a>
+      <a mat-list-item routerLink="/importar" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>upload_file</mat-icon>
+        <span matListItemTitle>Importar</span>
+      </a>
+      <a mat-list-item routerLink="/lancamento-manual" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>edit_note</mat-icon>
+        <span matListItemTitle>Lançamento manual</span>
+      </a>
+      <a mat-list-item routerLink="/faturas" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>receipt_long</mat-icon>
+        <span matListItemTitle>Faturas</span>
+      </a>
+
+      <div class="nav-sep"></div>
+
+      <a mat-list-item routerLink="/cartoes" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>credit_card</mat-icon>
+        <span matListItemTitle>Cartões</span>
+      </a>
+      <a mat-list-item routerLink="/layouts" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
+        <mat-icon matListItemIcon>view_quilt</mat-icon>
+        <span matListItemTitle>Layouts</span>
+      </a>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="topbar" color="primary">
+      <button
+        mat-icon-button
+        type="button"
+        (click)="sidenav.toggle()"
+        aria-label="Menu"
+        class="only-mobile">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <mat-form-field appearance="outline" class="search">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [value]="search()"
+          (input)="search.set($any($event.target).value)"
+          placeholder="Search transaction..." />
+      </mat-form-field>
+
+      <span style="flex: 1 1 auto;"></span>
+
+      <button mat-icon-button type="button" aria-label="Notifications">
+        <mat-icon>notifications</mat-icon>
+      </button>
+      <button mat-raised-button color="primary" type="button" class="top-action">
+        Gerar relatório
+      </button>
+    </mat-toolbar>
+
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

@@ -1,0 +1,71 @@
+<div class="page pagina">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Detalhe da fatura</h1>
+      <div class="page-subtitle" *ngIf="fatura as f">
+        {{ f.banco }} · {{ f.cartao }} · {{ f.competencia }}
+      </div>
+    </div>
+    <a mat-stroked-button routerLink="/faturas">Voltar</a>
+  </div>
+
+  <mat-card class="card elev panel">
+    <mat-card-header>
+      <mat-card-title>Resumo</mat-card-title>
+      <mat-card-subtitle *ngIf="fatura as f">Total e lançamentos importados</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <p *ngIf="erro" class="erro">{{ erro }}</p>
+      <p *ngIf="carregando">Carregando...</p>
+
+      <ng-container *ngIf="!carregando && fatura as f">
+        <div class="resumo">
+          <p><strong>Total:</strong> {{ f.totalFatura | currency:'BRL' }}</p>
+          <p><strong>Importada em:</strong> {{ f.importedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          <p><strong>Atualizada em:</strong> {{ f.updatedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          <p><strong>Lançamentos:</strong> {{ f.lancamentos.length }}</p>
+        </div>
+
+        <div class="acoes-topo">
+          <button mat-raised-button color="primary" (click)="abrirNoDashboard()">Abrir no dashboard</button>
+          <button mat-stroked-button (click)="editar()">Editar</button>
+          <button mat-stroked-button color="warn" (click)="excluir()">Excluir</button>
+        </div>
+
+        <div class="table-wrap elev">
+          <table mat-table [dataSource]="f.lancamentos" class="tabela">
+          <ng-container matColumnDef="data">
+            <th mat-header-cell *matHeaderCellDef>Data</th>
+            <td mat-cell *matCellDef="let item">{{ item.data }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="descricao">
+            <th mat-header-cell *matHeaderCellDef>Descrição</th>
+            <td mat-cell *matCellDef="let item" class="cel-desc">{{ item.descricao }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="cidade">
+            <th mat-header-cell *matHeaderCellDef>Cidade</th>
+            <td mat-cell *matCellDef="let item">{{ item.cidade }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="categoriaSugerida">
+            <th mat-header-cell *matHeaderCellDef>Categoria</th>
+            <td mat-cell *matCellDef="let item">{{ item.categoriaSugerida }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valor">
+            <th mat-header-cell *matHeaderCellDef>Valor</th>
+            <td mat-cell *matCellDef="let item">{{ item.valor | currency:'BRL' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+        </div>
+      </ng-container>
+    </mat-card-content>
+  </mat-card>
+</div>
+

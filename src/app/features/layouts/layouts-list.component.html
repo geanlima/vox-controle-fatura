@@ -1,0 +1,74 @@
+<div class="page pagina">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Layouts</h1>
+      <div class="page-subtitle">Defina qual parser usar e associe ao cartão.</div>
+    </div>
+  </div>
+
+  <mat-card class="card elev panel">
+    <mat-card-header>
+      <mat-card-title>Layouts de fatura</mat-card-title>
+      <mat-card-subtitle>
+        Um layout define qual parser usar na importação. Depois associe o layout ao cartão em "Cartões".
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <p *ngIf="erro" class="erro">{{ erro }}</p>
+      <p *ngIf="carregando">Carregando...</p>
+
+      <div class="form-novo">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Nome</mat-label>
+          <input matInput [(ngModel)]="nome" name="nomeLayout" placeholder="Ex.: Itaú (PDF 2026)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Tipo</mat-label>
+          <mat-select [(ngModel)]="tipo" name="tipoLayout">
+            <mat-option value="itau">Itaú</mat-option>
+            <mat-option value="generico">Genérico</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" type="button" (click)="criar()">Adicionar</button>
+      </div>
+
+      <div *ngIf="!carregando && layouts.length > 0" class="table-wrap elev">
+        <table mat-table [dataSource]="layouts" class="tabela">
+        <ng-container matColumnDef="nome">
+          <th mat-header-cell *matHeaderCellDef>Nome</th>
+          <td mat-cell *matCellDef="let l">{{ l.nome }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let l">{{ nomeTipo(l.tipo) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let l" class="mono">{{ l.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="acoes">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let l" class="acoes">
+            <button mat-button (click)="editar(l)">Editar</button>
+            <button mat-button color="warn" (click)="excluir(l)">Excluir</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </div>
+
+      <div *ngIf="!carregando && layouts.length === 0" class="vazio">
+        Nenhum layout cadastrado ainda.
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+

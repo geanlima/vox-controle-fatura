@@ -1,20 +1,197 @@
-<div class="pagina" *ngIf="fatura(); else semDados">
-  <div class="topo">
-    <div>
-      <h1>Dashboard da Fatura</h1>
-      <p>
-        <strong>{{ fatura()?.banco }}</strong>
-        · {{ fatura()?.cartao }}
-        · {{ fatura()?.competencia }}
-      </p>
+<div class="page pagina">
+  <div class="page-header">
+    <div class="header-left">
+      <div class="kicker">Overview</div>
+      <h1 class="page-title">Dashboard</h1>
+      <div class="sub">
+        <span class="chip">
+          <mat-icon inline="true">offline_bolt</mat-icon>
+          Offline
+        </span>
+        <span class="muted">Selecione cartão e mês para carregar a fatura salva.</span>
+      </div>
     </div>
 
-    <button mat-raised-button color="primary" (click)="voltarImportacao()">
-      Voltar para importação
-    </button>
+    <div *ngIf="fatura()" class="filters panel elev">
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Cartão</mat-label>
+        <mat-select
+          [value]="cartaoSelecionadoId()"
+          (selectionChange)="cartaoSelecionadoId.set($event.value); carregarCompetencias()">
+          <mat-option value="">Selecione...</mat-option>
+          <mat-option *ngFor="let c of cartoes()" [value]="c.id">
+            {{ c.nome }} <span *ngIf="c.ultimos4">({{ c.ultimos4 }})</span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Mês</mat-label>
+        <mat-select
+          [disabled]="!cartaoSelecionadoId() || competencias().length === 0"
+          [value]="competenciaSelecionada()"
+          (selectionChange)="competenciaSelecionada.set($event.value)">
+          <mat-option value="">Selecione...</mat-option>
+          <mat-option *ngFor="let c of competencias()" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="aplicarFiltro()"
+        [disabled]="!cartaoSelecionadoId() || !competenciaSelecionada() || carregandoSelecao()">
+        {{ carregandoSelecao() ? 'Carregando...' : 'Aplicar' }}
+      </button>
+    </div>
   </div>
 
-  <mat-card class="bloco-analise" *ngIf="insights().length > 0">
+  <mat-card class="card elev panel empty-panel" *ngIf="!fatura()">
+    <mat-card-content>
+      <div class="filters empty-filters panel" style="box-shadow:none; border:0; padding:0; background:transparent;">
+        <mat-form-field appearance="outline" class="field">
+          <mat-label>Cartão</mat-label>
+          <mat-select
+            [value]="cartaoSelecionadoId()"
+            (selectionChange)="cartaoSelecionadoId.set($event.value); carregarCompetencias()">
+            <mat-option value="">Selecione...</mat-option>
+            <mat-option *ngFor="let c of cartoes()" [value]="c.id">
+              {{ c.nome }} <span *ngIf="c.ultimos4">({{ c.ultimos4 }})</span>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field">
+          <mat-label>Mês</mat-label>
+          <mat-select
+            [disabled]="!cartaoSelecionadoId() || competencias().length === 0"
+            [value]="competenciaSelecionada()"
+            (selectionChange)="competenciaSelecionada.set($event.value)">
+            <mat-option value="">Selecione...</mat-option>
+            <mat-option *ngFor="let c of competencias()" [value]="c">{{ c }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="empty-body">
+        <div class="empty-col">
+          <h3>Escolha um cartão</h3>
+          <p class="muted">Cadastre cartões e associe as faturas importadas para usar o dashboard por mês.</p>
+          <button mat-stroked-button color="primary" type="button" (click)="voltarImportacao()">
+            Importar fatura
+          </button>
+        </div>
+        <div class="empty-col">
+          <h3>Nenhuma fatura carregada</h3>
+          <p class="muted">Selecione um cartão e um mês e clique em “Aplicar”.</p>
+        </div>
+      </div>
+
+      <div class="empty-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          (click)="aplicarFiltro()"
+          [disabled]="!cartaoSelecionadoId() || !competenciaSelecionada() || carregandoSelecao()">
+          {{ carregandoSelecao() ? 'Carregando...' : 'Aplicar' }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="stats" *ngIf="fatura()">
+    <mat-card class="stat stat-blue elev">
+      <mat-card-content class="stat-content">
+        <div class="stat-k">Total invoice</div>
+        <div class="stat-v">{{ totalGastoReal() | currency:'BRL' }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat stat-green elev">
+      <mat-card-content class="stat-content">
+        <div class="stat-k">Transactions</div>
+        <div class="stat-v">{{ totalLancamentos() }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat stat-yellow elev">
+      <mat-card-content class="stat-content">
+        <div class="stat-k">Avg ticket</div>
+        <div class="stat-v">{{ ticketMedio() | currency:'BRL' }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat stat-purple elev">
+      <mat-card-content class="stat-content">
+        <div class="stat-k">Top category</div>
+        <div class="stat-v">{{ (maiorCategoria() ? maiorCategoria()!.categoria : '—') }}</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="hero" *ngIf="fatura()">
+    <div class="hero-left">
+      <mat-card class="card elev hero-card card-visual" *ngIf="cartaoSelecionado() as c; else semCartao">
+        <mat-card-content class="card-visual-content">
+          <div class="cv-top">
+            <div class="cv-brand">
+              <div class="cv-dot"></div>
+              <div class="cv-title">
+                <div class="cv-name">{{ c.nome }}</div>
+                <div class="cv-meta muted">
+                  <span *ngIf="c.bandeira">{{ c.bandeira }}</span>
+                  <span *ngIf="c.bandeira && c.ultimos4"> · </span>
+                  <span *ngIf="c.ultimos4">•••• {{ c.ultimos4 }}</span>
+                </div>
+              </div>
+            </div>
+            <mat-icon class="cv-icon">credit_card</mat-icon>
+          </div>
+
+          <div class="cv-number">•••• •••• •••• {{ c.ultimos4 || '0000' }}</div>
+          <div class="cv-bottom">
+            <div class="mono muted">Competência</div>
+            <div class="cv-comp">{{ competenciaSelecionada() || '—' }}</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <ng-template #semCartao>
+        <mat-card class="card elev hero-card vazio">
+          <mat-card-content>
+            <h3>Escolha um cartão</h3>
+            <p class="muted">Cadastre cartões e associe as faturas importadas para usar o dashboard por mês.</p>
+            <button mat-stroked-button color="primary" type="button" (click)="voltarImportacao()">
+              Importar fatura
+            </button>
+          </mat-card-content>
+        </mat-card>
+      </ng-template>
+    </div>
+
+    <div class="hero-right">
+      <mat-card class="card elev hero-card" *ngIf="fatura() as f; else semDados">
+        <mat-card-content class="hero-summary">
+          <div class="hs-title">Fatura selecionada</div>
+          <div class="hs-main">
+            <div class="hs-total">{{ totalGastoReal() | currency:'BRL' }}</div>
+            <div class="hs-sub muted">
+              {{ f.banco }} · {{ f.cartao }} · {{ f.competencia }}
+            </div>
+          </div>
+          <div class="hs-actions">
+            <button mat-stroked-button color="primary" type="button" (click)="abrirLancamentosFatura()">
+              Ver lançamentos
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <mat-card class="card elev bloco-analise" *ngIf="fatura() && insights().length > 0">
     <mat-card-header>
       <mat-card-title>Análise da fatura</mat-card-title>
       <mat-card-subtitle>Sugestões com base nos seus lançamentos reais (sem simulação)</mat-card-subtitle>
@@ -28,7 +205,7 @@
     </mat-card-content>
   </mat-card>
 
-  <mat-card class="bloco-simulacao">
+  <mat-card class="card elev bloco-simulacao" *ngIf="fatura()">
     <mat-card-header>
       <mat-card-title>Simular uma compra</mat-card-title>
       <mat-card-subtitle
@@ -89,42 +266,10 @@
     </mat-card-content>
   </mat-card>
 
-  <div class="cards-resumo">
-    <mat-card class="card">
-      <mat-card-content>
-        <div class="titulo">Total da Fatura</div>
-        <div class="valor">{{ totalGasto() | currency:'BRL' }}</div>
-        <div class="subtitulo-card" *ngIf="simulacaoAtiva() && deltaSimulacao() !== 0">
-          Real: {{ totalGastoReal() | currency:'BRL' }}
-        </div>
-      </mat-card-content>
-    </mat-card>
+  <!-- cards-resumo substituído pelos stats no topo -->
 
-    <mat-card class="card">
-      <mat-card-content>
-        <div class="titulo">Lançamentos</div>
-        <div class="valor">{{ totalLancamentos() }}</div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="card">
-      <mat-card-content>
-        <div class="titulo">Ticket Médio</div>
-        <div class="valor">{{ ticketMedio() | currency:'BRL' }}</div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="card" *ngIf="maiorCategoria() as maior">
-      <mat-card-content>
-        <div class="titulo">Maior Categoria</div>
-        <div class="valor menor">{{ maior.categoria }}</div>
-        <div class="subvalor">{{ maior.total | currency:'BRL' }}</div>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
-  <div class="grid">
-    <mat-card class="painel">
+  <div class="grid" *ngIf="fatura()">
+    <mat-card class="painel card elev">
       <mat-card-header>
         <mat-card-title>Distribuição por categoria</mat-card-title>
         <mat-card-subtitle *ngIf="simulacaoAtiva()">Inclui a compra simulada</mat-card-subtitle>
@@ -136,7 +281,7 @@
       </mat-card-content>
     </mat-card>
 
-    <mat-card class="painel">
+    <mat-card class="painel card elev">
       <mat-card-header>
         <mat-card-title>Resumo por categoria</mat-card-title>
       </mat-card-header>
@@ -151,7 +296,15 @@
           </div>
 
           <div class="linha" *ngFor="let item of resumoPorCategoria()">
-            <div>{{ item.categoria }}</div>
+            <div>
+              <button
+                mat-button
+                type="button"
+                class="cat-link"
+                (click)="abrirLancamentosCategoria(item.categoria)">
+                {{ item.categoria }}
+              </button>
+            </div>
             <div>{{ item.total | currency:'BRL' }}</div>
             <div>{{ item.percentual | percent:'1.0-1' }}</div>
             <div>{{ item.quantidade }}</div>
@@ -164,15 +317,10 @@
 </div>
 
 <ng-template #semDados>
-  <div class="pagina">
-    <mat-card>
-      <mat-card-content>
-        <h2>Nenhuma fatura carregada</h2>
-        <p>Importe uma fatura primeiro para visualizar o dashboard.</p>
-        <button mat-raised-button color="primary" (click)="voltarImportacao()">
-          Ir para importação
-        </button>
-      </mat-card-content>
-    </mat-card>
-  </div>
+  <mat-card class="card elev vazio">
+    <mat-card-content>
+      <h3>Nenhuma fatura carregada</h3>
+      <p class="muted">Selecione um cartão e um mês e clique em “Aplicar”.</p>
+    </mat-card-content>
+  </mat-card>
 </ng-template>

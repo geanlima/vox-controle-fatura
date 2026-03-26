@@ -17,11 +17,19 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Chart, registerables } from 'chart.js';
 
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
 import { LancamentoImportado } from '../../core/models/importacao-fatura.model';
+import { CartaoCreditoResumo, LocalDbService } from '../../core/services/local-db.service';
+import {
+  CategoriaLancamentosDialogComponent,
+  CategoriaLancamentosDialogData,
+} from './categoria-lancamentos-dialog.component';
+import { FaturaLancamentosDialogComponent, FaturaLancamentosDialogData } from './fatura-lancamentos-dialog.component';
 
 Chart.register(...registerables);
 
@@ -50,6 +58,8 @@ export interface InsightAnalise {
     MatInputModule,
     MatSelectModule,
     MatSlideToggleModule,
+    MatIconModule,
+    MatDialogModule,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -58,14 +68,27 @@ export class DashboardComponent implements AfterViewInit {
   private faturaState = inject(FaturaStateService);
   private categoria = inject(CategoriaService);
   private router = inject(Router);
+  private db = inject(LocalDbService);
+  private dialog = inject(MatDialog);
 
   categoriasOpcoes = this.categoria.listarNomesCategorias();
 
-  @ViewChild('graficoCategorias') graficoCategoriasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('graficoCategorias') graficoCategoriasRef?: ElementRef<HTMLCanvasElement>;
 
   chart: Chart | null = null;
 
   fatura = this.faturaState.fatura;
+
+  cartoes = signal<CartaoCreditoResumo[]>([]);
+  competencias = signal<string[]>([]);
+  cartaoSelecionadoId = signal('');
+  competenciaSelecionada = signal('');
+  carregandoSelecao = signal(false);
+
+  cartaoSelecionado = computed(() => {
+    const id = this.cartaoSelecionadoId();
+    return this.cartoes().find((c) => c.id === id) ?? null;
+  });
 
   simulacaoAtiva = signal(false);
   simValorTexto = signal('');
@@ -228,20 +251,119 @@ export class DashboardComponent implements AfterViewInit {
   });
 
   constructor() {
+    void this.inicializarSelecao();
     effect(() => {
+      const temFatura = !!this.fatura();
       const resumo = this.resumoPorCategoria();
-      if (this.chart && resumo.length > 0) {
-        this.atualizarGrafico();
+
+      if (!temFatura || resumo.length === 0) {
+        if (!temFatura && this.chart) {
+          this.chart.destroy();
+          this.chart = null;
+        }
+        return;
       }
+
+      queueMicrotask(() => {
+        this.garantirGrafico();
+        this.atualizarGrafico();
+      });
     });
   }
 
+  private async inicializarSelecao(): Promise<void> {
+    try {
+      const cartoes = await this.db.listarCartoes();
+      this.cartoes.set(cartoes);
+
+      const atual = this.fatura();
+      if (atual?.cartaoId) {
+        this.cartaoSelecionadoId.set(atual.cartaoId);
+        await this.carregarCompetencias();
+        if (atual.competencia) {
+          this.competenciaSelecionada.set(atual.competencia);
+        }
+      }
+    } catch {
+      this.cartoes.set([]);
+    }
+  }
+
+  async carregarCompetencias(): Promise<void> {
+    const cartaoId = this.cartaoSelecionadoId();
+    if (!cartaoId) {
+      this.competencias.set([]);
+      this.competenciaSelecionada.set('');
+      return;
+    }
+    try {
+      const comps = await this.db.listarCompetenciasPorCartao(cartaoId);
+      this.competencias.set(comps);
+      if (comps.length && !this.competenciaSelecionada()) {
+        this.competenciaSelecionada.set(comps[0] ?? '');
+      }
+    } catch {
+      this.competencias.set([]);
+      this.competenciaSelecionada.set('');
+    }
+  }
+
+  async aplicarFiltro(): Promise<void> {
+    const cartaoId = this.cartaoSelecionadoId();
+    const comp = this.competenciaSelecionada();
+    if (!cartaoId || !comp) return;
+
+    this.carregandoSelecao.set(true);
+    try {
+      const id = await this.db.obterFaturaIdPorCartaoCompetencia(cartaoId, comp);
+      if (id) {
+        await this.faturaState.carregarFaturaSalva(id);
+      }
+    } finally {
+      this.carregandoSelecao.set(false);
+    }
+  }
+
   ngAfterViewInit(): void {
-    this.criarGrafico();
+    this.garantirGrafico();
   }
 
   voltarImportacao(): void {
     this.router.navigate(['/importar']);
+  }
+
+  abrirLancamentosFatura(): void {
+    const f = this.fatura();
+    if (!f) return;
+
+    const data: FaturaLancamentosDialogData = {
+      titulo: 'Lançamentos da fatura',
+      subtitulo: `${f.banco} · ${f.cartao} · ${f.competencia}`,
+      lancamentos: f.lancamentos ?? [],
+    };
+
+    this.dialog.open(FaturaLancamentosDialogComponent, {
+      data,
+      width: '980px',
+      maxWidth: '94vw',
+    });
+  }
+
+  abrirLancamentosCategoria(categoria: string): void {
+    const cat = (categoria || '').trim();
+    if (!cat) return;
+
+    const itens = this.lancamentosCombinados().filter((l) => {
+      const c = (l.categoriaSugerida || 'Outros').trim() || 'Outros';
+      return c === cat;
+    });
+
+    const data: CategoriaLancamentosDialogData = { categoria: cat, lancamentos: itens };
+    this.dialog.open(CategoriaLancamentosDialogComponent, {
+      data,
+      width: '860px',
+      maxWidth: '94vw',
+    });
   }
 
   limparSimulacao(): void {
@@ -251,19 +373,29 @@ export class DashboardComponent implements AfterViewInit {
     this.simulacaoAtiva.set(false);
   }
 
-  private criarGrafico(): void {
+  private garantirGrafico(): void {
     const canvas = this.graficoCategoriasRef?.nativeElement;
     if (!canvas) return;
 
-    const resumo = this.resumoPorCategoria();
+    const chartCanvas = (this.chart as unknown as { canvas?: HTMLCanvasElement } | null)?.canvas;
+    const precisaRecriar = !this.chart || chartCanvas !== canvas;
+    if (!precisaRecriar) return;
+
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = null;
+    }
 
     this.chart = new Chart(canvas, {
       type: 'doughnut',
       data: {
-        labels: resumo.map((x) => x.categoria),
+        labels: [],
         datasets: [
           {
-            data: resumo.map((x) => x.total),
+            data: [],
+            backgroundColor: [],
+            borderColor: 'rgba(255,255,255,0.85)',
+            borderWidth: 2,
           },
         ],
       },
@@ -285,7 +417,20 @@ export class DashboardComponent implements AfterViewInit {
 
     this.chart.data.labels = resumo.map((x) => x.categoria);
     this.chart.data.datasets[0].data = resumo.map((x) => x.total);
+    (this.chart.data.datasets[0] as unknown as { backgroundColor: string[] }).backgroundColor =
+      resumo.map((x) => this.corCategoria(x.categoria));
     this.chart.update();
+  }
+
+  private corCategoria(categoria: string): string {
+    const c = (categoria || '').toLowerCase();
+    if (c.includes('aliment')) return '#3b82f6'; // azul
+    if (c.includes('saúd') || c.includes('saud')) return '#10b981'; // verde
+    if (c.includes('transp')) return '#f59e0b'; // amarelo/laranja
+    if (c.includes('lazer')) return '#a855f7'; // roxo
+    if (c.includes('compr')) return '#06b6d4'; // ciano
+    if (c.includes('vest')) return '#f472b6'; // rosa
+    return '#64748b'; // outros (slate)
   }
 
   private parseValorEntrada(texto: string): number | null {

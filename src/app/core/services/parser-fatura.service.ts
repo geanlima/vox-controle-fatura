@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Lancamento } from '../models/lancamento.model';
 import { CategoriaService } from './categoria.service';
 import { Fatura } from '../models/fatura.model';
+import { LayoutParserTipo } from './local-db.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,19 +10,19 @@ import { Fatura } from '../models/fatura.model';
 export class ParserFaturaService {
   constructor(private categoriaService: CategoriaService) {}
 
-  async processarPdf(arquivo: File): Promise<Fatura> {
+  async processarPdf(arquivo: File, layout: LayoutParserTipo = 'itau'): Promise<Fatura> {
     const texto = await this.extrairTextoDoPdf(arquivo);
-    return this.processarTexto(texto);
+    return this.processarTexto(texto, layout);
   }
 
-  processarTexto(texto: string): Fatura {
+  processarTexto(texto: string, layout: LayoutParserTipo = 'itau'): Fatura {
     const lancamentos = this.removerDuplicatas(
       this.ordenarLancamentosPorData(this.parse(texto))
     );
 
     return {
       id: crypto.randomUUID(),
-      competencia: this.extrairCompetencia(texto),
+      competencia: this.extrairCompetencia(texto, layout),
       valorTotal: this.calcularTotal(lancamentos),
       lancamentos,
     };
@@ -232,7 +233,13 @@ export class ParserFaturaService {
     return pdfjsLib;
   }
 
-  private extrairCompetencia(texto: string): string {
+  private extrairCompetencia(texto: string, layout: LayoutParserTipo): string {
+    // Hoje, Itaú e Genérico compartilham a mesma extração (MM/YYYY). Mantém o switch
+    // para facilitar a inclusão de bancos com padrão diferente.
+    if (layout === 'itau' || layout === 'generico') {
+      const match = texto.match(/\b(0[1-9]|1[0-2])\/\d{4}\b/);
+      return match?.[0] ?? 'N/A';
+    }
     const match = texto.match(/\b(0[1-9]|1[0-2])\/\d{4}\b/);
     return match?.[0] ?? 'N/A';
   }

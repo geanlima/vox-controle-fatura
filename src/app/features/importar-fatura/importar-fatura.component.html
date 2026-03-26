@@ -1,6 +1,14 @@
-<div class="pagina">
-  <div class="grid-principal">
-    <mat-card class="painel">
+<div class="page pagina">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Importação</h1>
+      <div class="page-subtitle">Importe o PDF da fatura e salve para consultar no Dashboard.</div>
+    </div>
+    <a mat-stroked-button routerLink="/lancamento-manual">Lançamento manual</a>
+  </div>
+
+  <div class="import-wrap">
+    <mat-card class="painel card elev panel">
       <mat-card-header>
         <mat-card-title>Importar PDF</mat-card-title>
         <mat-card-subtitle>
@@ -9,53 +17,39 @@
       </mat-card-header>
 
       <mat-card-content>
-        <input type="file" accept="application/pdf" (change)="onFileSelected($event)" class="input-arquivo" />
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+          <mat-label>Cartão</mat-label>
+          <mat-select [(ngModel)]="cartaoSelecionadoId" name="cartaoSelecionadoId">
+            <mat-option value="">Selecione...</mat-option>
+            <mat-option *ngFor="let c of cartoes" [value]="c.id">
+              {{ c.nome }} <span *ngIf="c.ultimos4">({{ c.ultimos4 }})</span>
+            </mat-option>
+          </mat-select>
+          </mat-form-field>
+
+          <div class="file-box">
+            <div class="file-title">Arquivo</div>
+            <div class="file-sub">Selecione o PDF da fatura para extrair os lançamentos.</div>
+            <input type="file" accept="application/pdf" (change)="onFileSelected($event)" class="input-arquivo" />
+          </div>
+        </div>
 
         <div class="acoes">
           <button mat-raised-button color="primary" (click)="importarPdf()" [disabled]="carregando">
             {{ carregando ? 'Importando...' : 'Processar PDF' }}
           </button>
+          <a mat-button routerLink="/cartoes">Cadastrar cartões</a>
+          <a mat-button routerLink="/layouts">Layouts</a>
         </div>
 
         <p *ngIf="erro" class="erro">{{ erro }}</p>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="painel">
-      <mat-card-header>
-        <mat-card-title>Lançamento manual</mat-card-title>
-        <mat-card-subtitle>Inclua compras ou ajustes que não vieram no PDF</mat-card-subtitle>
-      </mat-card-header>
-
-      <mat-card-content class="form-manual">
-        <mat-form-field appearance="outline" class="campo-data">
-          <mat-label>Data (DD/MM)</mat-label>
-          <input matInput [(ngModel)]="dataManual" placeholder="15/03" maxlength="5" name="dataManual" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="campo-desc">
-          <mat-label>Descrição</mat-label>
-          <input matInput [(ngModel)]="descricaoManual" name="descricaoManual" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="campo-cidade">
-          <mat-label>Cidade (opcional)</mat-label>
-          <input matInput [(ngModel)]="cidadeManual" name="cidadeManual" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="campo-valor">
-          <mat-label>Valor (R$)</mat-label>
-          <input matInput [(ngModel)]="valorManual" placeholder="120,50 ou -30,00" name="valorManual" />
-        </mat-form-field>
-
-        <button mat-raised-button color="accent" type="button" (click)="adicionarLancamentoManual()">
-          Adicionar lançamento
-        </button>
+        <p *ngIf="sucesso" class="sucesso">{{ sucesso }}</p>
       </mat-card-content>
     </mat-card>
   </div>
 
-  <mat-card *ngIf="temLancamentos()" class="mt-16 card-resumo">
+  <mat-card *ngIf="temLancamentos()" class="mt-16 card-resumo card elev">
     <mat-card-header>
       <mat-card-title>Resumo da fatura</mat-card-title>
     </mat-card-header>
@@ -70,6 +64,15 @@
 
       <div class="acoes-barra">
         <button mat-raised-button color="primary" (click)="irParaDashboard()">Ver dashboard</button>
+        <button
+          mat-stroked-button
+          color="accent"
+          type="button"
+          (click)="salvarFatura()"
+          [disabled]="!temLancamentos()">
+          Salvar fatura
+        </button>
+        <a mat-button routerLink="/faturas" *ngIf="temLancamentos()">Ver faturas salvas</a>
       </div>
 
       <div *ngIf="temPossivelDuplicata()" class="aviso-duplicata">
@@ -81,7 +84,8 @@
         </p>
       </div>
 
-      <table mat-table [dataSource]="resultado!.lancamentos" class="full-width mat-elevation-z2 mt-16 tabela">
+      <div class="table-wrap elev mt-16">
+        <table mat-table [dataSource]="resultado!.lancamentos" class="full-width tabela">
         <ng-container matColumnDef="data">
           <th mat-header-cell *matHeaderCellDef>Data</th>
           <td mat-cell *matCellDef="let item">{{ item.data }}</td>
@@ -131,7 +135,8 @@
           mat-row
           *matRowDef="let row; columns: displayedColumns"
           [class.linha-possivel-duplicata]="ehPossivelDuplicataDataValor(row)"></tr>
-      </table>
+        </table>
+      </div>
     </mat-card-content>
   </mat-card>
 </div>

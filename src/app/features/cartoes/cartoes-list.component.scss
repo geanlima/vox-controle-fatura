@@ -1,0 +1,42 @@
+.pagina {
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.erro {
+  color: #b00020;
+  margin: 8px 0 16px;
+  font-weight: 500;
+}
+
+.form-novo {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 8px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.layout-cell {
+  width: 260px;
+}
+
+.tabela {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.acoes button + button {
+  margin-left: 8px;
+}
+
+.vazio {
+  margin-top: 12px;
+  opacity: 0.8;
+}
+

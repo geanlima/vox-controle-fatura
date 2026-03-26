@@ -1,0 +1,31 @@
+.pagina {
+  padding: 16px;
+}
+
+.erro {
+  color: #b00020;
+  margin: 8px 0 16px;
+}
+
+.resumo p {
+  margin: 4px 0;
+}
+
+.acoes-topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.tabela {
+  width: 100%;
+}
+
+.cel-desc {
+  max-width: 520px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

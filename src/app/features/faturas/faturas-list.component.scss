@@ -1,0 +1,39 @@
+.pagina {
+  padding: 0;
+}
+
+:host {
+  display: block;
+}
+
+:host ::ng-deep .mat-mdc-card {
+  overflow: hidden;
+}
+
+.erro {
+  color: #b00020;
+  margin: 8px 0 16px;
+}
+
+.vazio {
+  margin-top: 12px;
+}
+
+.tabela {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.acoes button + button {
+  margin-left: 8px;
+}
+
+:host ::ng-deep .mat-mdc-header-cell,
+:host ::ng-deep .mat-mdc-cell {
+  padding: 14px 18px;
+}
+
+:host ::ng-deep .mat-mdc-row .mat-mdc-cell {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+

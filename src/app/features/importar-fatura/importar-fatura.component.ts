@@ -1,17 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 
 import { ImportacaoFaturaApiService } from '../../core/services/importacao-fatura-api.service';
 import { FaturaImportada, LancamentoImportado } from '../../core/models/importacao-fatura.model';
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
+import { CartaoCreditoResumo, LayoutParserTipo, LocalDbService } from '../../core/services/local-db.service';
 
 @Component({
   selector: 'app-importar-fatura',
@@ -24,6 +26,7 @@ import { CategoriaService } from '../../core/services/categoria.service';
     MatTableModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
   ],
   templateUrl: './importar-fatura.component.html',
   styleUrl: './importar-fatura.component.scss',
@@ -32,12 +35,11 @@ export class ImportarFaturaComponent implements OnInit {
   arquivoSelecionado: File | null = null;
   carregando = false;
   erro = '';
+  sucesso = '';
   resultado: FaturaImportada | null = null;
 
-  dataManual = '';
-  descricaoManual = '';
-  cidadeManual = '';
-  valorManual = '';
+  cartoes: CartaoCreditoResumo[] = [];
+  cartaoSelecionadoId = '';
 
   displayedColumns = [
     'data',
@@ -53,17 +55,47 @@ export class ImportarFaturaComponent implements OnInit {
     private api: ImportacaoFaturaApiService,
     private faturaState: FaturaStateService,
     private categoria: CategoriaService,
+    private localDb: LocalDbService,
+    private route: ActivatedRoute,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    void this.carregarCartoes();
+
+    // Por padrão a tela de importação abre vazia.
+    // Só mantemos o estado quando viemos de "Editar" (fatura salva) via query param.
+    const manter = this.route.snapshot.queryParamMap.get('manter') === '1';
+    if (!manter) {
+      this.faturaState.limpar();
+      this.resultado = null;
+      this.cartaoSelecionadoId = '';
+      this.arquivoSelecionado = null;
+      return;
+    }
+
     const salva = this.faturaState.fatura();
     if (salva) {
       this.resultado = {
         ...salva,
         lancamentos: salva.lancamentos.map((l) => ({ ...l })),
       };
+      this.cartaoSelecionadoId = (salva.cartaoId ?? '') || '';
     }
+  }
+
+  private async carregarCartoes(): Promise<void> {
+    try {
+      this.cartoes = await this.localDb.listarCartoes();
+    } catch {
+      this.cartoes = [];
+    }
+  }
+
+  private getCartaoSelecionado(): CartaoCreditoResumo | null {
+    const id = this.cartaoSelecionadoId?.trim();
+    if (!id) return null;
+    return this.cartoes.find((c) => c.id === id) ?? null;
   }
 
   onFileSelected(event: Event): void {
@@ -72,7 +104,12 @@ export class ImportarFaturaComponent implements OnInit {
     this.erro = '';
   }
 
-  importarPdf(): void {
+  async importarPdf(): Promise<void> {
+    const cartao = this.getCartaoSelecionado();
+    if (!cartao) {
+      this.erro = 'Selecione um cartão antes de importar.';
+      return;
+    }
     if (!this.arquivoSelecionado) {
       this.erro = 'Selecione um PDF.';
       return;
@@ -80,10 +117,27 @@ export class ImportarFaturaComponent implements OnInit {
 
     this.carregando = true;
     this.erro = '';
+    this.sucesso = '';
 
-    this.api.importarPdf(this.arquivoSelecionado).subscribe({
+    let layout: LayoutParserTipo = 'itau';
+    if (cartao.layoutId) {
+      try {
+        const l = await this.localDb.obterLayout(cartao.layoutId);
+        if (l) {
+          layout = l.tipo;
+        }
+      } catch {
+        // fallback itau
+      }
+    }
+
+    this.api.importarPdf(this.arquivoSelecionado, layout).subscribe({
       next: (res: FaturaImportada) => {
-        this.resultado = res;
+        this.resultado = {
+          ...res,
+          cartao: cartao.nome,
+          cartaoId: cartao.id,
+        };
         this.recalcularTotal();
         this.sincronizarEstado();
         this.carregando = false;
@@ -100,62 +154,10 @@ export class ImportarFaturaComponent implements OnInit {
             ? (err.error as { message: string }).message
             : null;
         this.erro = message ?? 'Erro ao importar a fatura.';
+        this.sucesso = '';
         this.carregando = false;
       },
     });
-  }
-
-  adicionarLancamentoManual(): void {
-    const data = this.dataManual.trim();
-    const descricao = this.descricaoManual.trim();
-
-    if (!/^\d{2}\/\d{2}$/.test(data)) {
-      this.erro = 'Informe a data no formato DD/MM.';
-      return;
-    }
-
-    if (!descricao) {
-      this.erro = 'Informe a descrição.';
-      return;
-    }
-
-    const valor = this.parseValorEntrada(this.valorManual);
-    if (valor === null) {
-      this.erro = 'Informe um valor válido (ex.: 150,90 ou -20,00).';
-      return;
-    }
-
-    this.erro = '';
-
-    if (!this.resultado) {
-      this.resultado = {
-        banco: 'Lançamentos manuais',
-        cartao: '—',
-        competencia: '—',
-        totalFatura: 0,
-        lancamentos: [],
-      };
-    }
-
-    const item: LancamentoImportado = {
-      data,
-      descricao,
-      cidade: this.cidadeManual.trim(),
-      valor,
-      moeda: 'BRL',
-      tipo: 'outro',
-      categoriaSugerida: this.categoria.classificar(descricao),
-      parcelaAtual: null,
-      totalParcelas: null,
-    };
-
-    this.resultado.lancamentos = [...this.resultado.lancamentos, item];
-    this.recalcularTotal();
-    this.sincronizarEstado();
-
-    this.descricaoManual = '';
-    this.valorManual = '';
-    this.cidadeManual = '';
   }
 
   removerLancamento(item: LancamentoImportado): void {
@@ -165,6 +167,7 @@ export class ImportarFaturaComponent implements OnInit {
     this.resultado.lancamentos = this.resultado.lancamentos.filter((_, i) => i !== idx);
     this.recalcularTotal();
     this.sincronizarEstado();
+    this.sucesso = '';
   }
 
   private recalcularTotal(): void {
@@ -175,6 +178,33 @@ export class ImportarFaturaComponent implements OnInit {
   private sincronizarEstado(): void {
     if (this.resultado) {
       this.faturaState.definirFatura({ ...this.resultado });
+    }
+  }
+
+  async salvarFatura(): Promise<void> {
+    this.erro = '';
+    this.sucesso = '';
+
+    const cartao = this.getCartaoSelecionado();
+    if (!cartao) {
+      this.erro = 'Selecione um cartão antes de salvar.';
+      return;
+    }
+    if (!this.resultado || this.resultado.lancamentos.length === 0) {
+      this.erro = 'Não há lançamentos para salvar.';
+      return;
+    }
+
+    // garante que o cartão escolhido esteja refletido no objeto salvo
+    this.resultado.cartao = cartao.nome;
+    this.resultado.cartaoId = cartao.id;
+    this.sincronizarEstado();
+
+    try {
+      await this.faturaState.salvarFaturaAtual();
+      this.sucesso = 'Fatura salva com sucesso.';
+    } catch {
+      this.erro = 'Erro ao salvar a fatura.';
     }
   }
 

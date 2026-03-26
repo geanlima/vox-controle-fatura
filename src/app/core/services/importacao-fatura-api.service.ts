@@ -6,6 +6,7 @@ import { FaturaImportada, LancamentoImportado } from '../models/importacao-fatur
 import { Lancamento } from '../models/lancamento.model';
 import { Fatura } from '../models/fatura.model';
 import { ParserFaturaService } from './parser-fatura.service';
+import { LayoutParserTipo } from './local-db.service';
 
 /**
  * Processa o PDF no navegador e devolve o formato usado pelo dashboard.
@@ -17,8 +18,8 @@ import { ParserFaturaService } from './parser-fatura.service';
 export class ImportacaoFaturaApiService {
   private parser = inject(ParserFaturaService);
 
-  importarPdf(arquivo: File): Observable<FaturaImportada> {
-    return from(this.parser.processarPdf(arquivo)).pipe(
+  importarPdf(arquivo: File, layout: LayoutParserTipo = 'itau'): Observable<FaturaImportada> {
+    return from(this.parser.processarPdf(arquivo, layout)).pipe(
       map((fatura) => this.converterParaImportada(fatura))
     );
   }
