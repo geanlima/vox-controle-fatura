@@ -40,12 +40,15 @@ export class ImportarFaturaComponent implements OnInit {
 
   cartoes: CartaoCreditoResumo[] = [];
   cartaoSelecionadoId = '';
+  categorias: string[] = [];
 
   displayedColumns = [
     'data',
     'descricao',
     'cidade',
     'categoriaSugerida',
+    'parcelaAtual',
+    'totalParcelas',
     'valor',
     'revisao',
     'acoes',
@@ -58,7 +61,9 @@ export class ImportarFaturaComponent implements OnInit {
     private localDb: LocalDbService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) {
+    this.categorias = this.categoria.listarNomesCategorias();
+  }
 
   ngOnInit(): void {
     void this.carregarCartoes();
@@ -133,10 +138,20 @@ export class ImportarFaturaComponent implements OnInit {
 
     this.api.importarPdf(this.arquivoSelecionado, layout).subscribe({
       next: (res: FaturaImportada) => {
+        const lancamentos = (res.lancamentos ?? []).map((l) => {
+          const p = this.extrairParcelamento(l.descricao);
+          return {
+            ...l,
+            parcelaAtual: p?.parcelaAtual ?? l.parcelaAtual ?? null,
+            totalParcelas: p?.totalParcelas ?? l.totalParcelas ?? null,
+          };
+        });
+
         this.resultado = {
           ...res,
           cartao: cartao.nome,
           cartaoId: cartao.id,
+          lancamentos,
         };
         this.recalcularTotal();
         this.sincronizarEstado();
@@ -168,6 +183,42 @@ export class ImportarFaturaComponent implements OnInit {
     this.recalcularTotal();
     this.sincronizarEstado();
     this.sucesso = '';
+  }
+
+  onLancamentoAlterado(item: LancamentoImportado, campo: 'descricao' | 'categoria' | 'parcela'): void {
+    if (!this.resultado) return;
+
+    if (campo === 'descricao') {
+      const p = this.extrairParcelamento(item.descricao);
+      if (p) {
+        item.parcelaAtual = p.parcelaAtual;
+        item.totalParcelas = p.totalParcelas;
+      } else {
+        item.parcelaAtual = item.parcelaAtual ?? null;
+        item.totalParcelas = item.totalParcelas ?? null;
+      }
+      if (!item.categoriaSugerida?.trim()) {
+        item.categoriaSugerida = this.categoria.classificar(item.descricao || '');
+      }
+    }
+
+    this.sincronizarEstado();
+    this.sucesso = '';
+  }
+
+  private extrairParcelamento(descricao: string): { parcelaAtual: number; totalParcelas: number } | null {
+    const d = (descricao || '').toString();
+    // padrões comuns: "01/10", "1/12", "03 / 06", "PARC 02/10"
+    const m = d.match(/(^|\D)(\d{1,2})\s*\/\s*(\d{1,2})(\D|$)/);
+    if (!m) return null;
+    const atual = Number(m[2]);
+    const total = Number(m[3]);
+    if (!Number.isFinite(atual) || !Number.isFinite(total)) return null;
+    if (atual < 1 || total < 2) return null;
+    if (atual > total) return null;
+    // limita para evitar falsos positivos bizarros
+    if (total > 60) return null;
+    return { parcelaAtual: atual, totalParcelas: total };
   }
 
   private recalcularTotal(): void {

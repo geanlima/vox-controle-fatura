@@ -20,6 +20,7 @@
 
 .painel mat-card-header {
   padding-bottom: 6px;
+  
 }
 
 .painel mat-card-subtitle {
@@ -105,7 +106,7 @@
 }
 
 .card-resumo {
-  max-width: 1100px;
+  max-width: 2100px;
 }
 
 .card-resumo .total-destaque {
@@ -121,6 +122,54 @@
     white-space: pre-line;
     max-width: 280px;
   }
+}
+
+.cell-field {
+  width: 100%;
+}
+
+.cell-desc {
+  min-width: 320px;
+}
+
+.cell-cat {
+  min-width: 180px;
+}
+
+.cell-parc {
+  max-width: 120px;
+}
+
+::host ::ng-deep .cell-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+::host ::ng-deep .cell-field .mat-mdc-text-field-wrapper {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+::host ::ng-deep .cell-field .mat-mdc-form-field-infix {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 14px;
+}
+
+::host ::ng-deep .cell-field .mat-mdc-select-trigger,
+::host ::ng-deep .cell-field input.mat-mdc-input-element {
+  font-size: 14px;
+}
+
+/* Mantém o Remover sempre visível */
+::host ::ng-deep .mat-mdc-table .mat-mdc-header-cell.mat-column-acoes,
+::host ::ng-deep .mat-mdc-table .mat-mdc-cell.mat-column-acoes {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+::host ::ng-deep .mat-mdc-table .mat-mdc-header-cell.mat-column-acoes {
+  z-index: 3;
 }
 
 .valor-negativo {

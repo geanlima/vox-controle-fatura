@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +15,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
   selector: 'app-root',
   standalone: true,
   imports: [
+    CommonModule,
     RouterOutlet,
     RouterLink,
     MatToolbarModule,
@@ -32,8 +34,23 @@ export class AppComponent {
   private readonly bo = inject(BreakpointObserver);
   isDesktop = signal(false);
   search = signal('');
+  cadastroAberto = signal(true);
+  faturaAberto = signal(true);
+  movimentoAberto = signal(true);
 
   constructor() {
     this.bo.observe(['(min-width: 980px)']).subscribe((r) => this.isDesktop.set(r.matches));
+  }
+
+  toggleGrupo(grupo: 'cadastro' | 'fatura' | 'movimento'): void {
+    if (grupo === 'cadastro') {
+      this.cadastroAberto.update((v) => !v);
+      return;
+    }
+    if (grupo === 'fatura') {
+      this.faturaAberto.update((v) => !v);
+      return;
+    }
+    this.movimentoAberto.update((v) => !v);
   }
 }

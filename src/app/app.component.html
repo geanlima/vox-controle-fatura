@@ -26,33 +26,54 @@
     <div class="side-nav">
       <div class="nav-title">Menu</div>
 
-      <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>dashboard</mat-icon>
-        <span matListItemTitle>Dashboard</span>
-      </a>
-      <a mat-list-item routerLink="/importar" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>upload_file</mat-icon>
-        <span matListItemTitle>Importar</span>
-      </a>
-      <a mat-list-item routerLink="/lancamento-manual" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>edit_note</mat-icon>
-        <span matListItemTitle>Lançamento manual</span>
-      </a>
-      <a mat-list-item routerLink="/faturas" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>receipt_long</mat-icon>
-        <span matListItemTitle>Faturas</span>
-      </a>
+      <div class="nav-group">
+        <button type="button" class="nav-group-title tree-header" (click)="toggleGrupo('cadastro')">
+          <span>Cadastro</span>
+          <span class="tree-toggle">{{ cadastroAberto() ? '−' : '+' }}</span>
+        </button>
+        <div *ngIf="cadastroAberto()">
+          <a mat-list-item routerLink="/cartoes" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Cartão de crédito</span>
+          </a>
+          <a mat-list-item routerLink="/layouts" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Layout</span>
+          </a>
+        </div>
+      </div>
 
       <div class="nav-sep"></div>
 
-      <a mat-list-item routerLink="/cartoes" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>credit_card</mat-icon>
-        <span matListItemTitle>Cartões</span>
-      </a>
-      <a mat-list-item routerLink="/layouts" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item">
-        <mat-icon matListItemIcon>view_quilt</mat-icon>
-        <span matListItemTitle>Layouts</span>
-      </a>
+      <div class="nav-group">
+        <button type="button" class="nav-group-title tree-header" (click)="toggleGrupo('fatura')">
+          <span>Fatura</span>
+          <span class="tree-toggle">{{ faturaAberto() ? '−' : '+' }}</span>
+        </button>
+        <div *ngIf="faturaAberto()">
+          <a mat-list-item routerLink="/importar" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Importar</span>
+          </a>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Dashboard</span>
+          </a>
+          <a mat-list-item routerLink="/faturas" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Faturas salvas</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="nav-sep"></div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-title tree-header" (click)="toggleGrupo('movimento')">
+          <span>Movimento</span>
+          <span class="tree-toggle">{{ movimentoAberto() ? '−' : '+' }}</span>
+        </button>
+        <div *ngIf="movimentoAberto()">
+          <a mat-list-item routerLink="/lancamento-manual" routerLinkActive="active" (click)="!isDesktop() && sidenav.close()" class="nav-item nav-subitem">
+            <span matListItemTitle>Lançamento manual</span>
+          </a>
+        </div>
+      </div>
     </div>
   </mat-sidenav>
 

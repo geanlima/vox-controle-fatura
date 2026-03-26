@@ -7,6 +7,12 @@
   margin: 8px 0 16px;
 }
 
+.sucesso {
+  color: #1b5e20;
+  margin: 8px 0 16px;
+  font-weight: 600;
+}
+
 .resumo p {
   margin: 4px 0;
 }
@@ -16,6 +22,11 @@
   flex-wrap: wrap;
   gap: 8px;
   margin: 12px 0 16px;
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
 }
 
 .tabela {
@@ -23,9 +34,31 @@
 }
 
 .cel-desc {
-  max-width: 520px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 560px;
+}
+
+.cell-field {
+  width: 100%;
+}
+
+.cell-desc {
+  min-width: 320px;
+}
+
+.cell-parc {
+  max-width: 120px;
+}
+
+::host ::ng-deep .cell-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+::host ::ng-deep .cell-field .mat-mdc-text-field-wrapper {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+::host ::ng-deep .cell-field .mat-mdc-form-field-infix {
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 

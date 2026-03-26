@@ -105,10 +105,54 @@
   text-transform: uppercase;
 }
 
+.nav-group + .nav-group {
+  margin-top: 6px;
+}
+
+.nav-group-title {
+  padding: 8px 12px 6px;
+  font-size: 12px;
+  opacity: 0.72;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tree-header {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.tree-toggle {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0.85;
+}
+
 .nav-item {
   border-radius: 16px;
   margin: 10px 0;
   overflow: hidden;
+}
+
+.nav-subitem {
+  margin: 6px 0;
+}
+
+.nav-subitem::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  margin-left: 14px;
+  margin-right: 10px;
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .nav-item.active {
@@ -139,31 +183,9 @@
   color: rgba(37, 99, 235, 0.95) !important;
 }
 
-:host ::ng-deep .nav-item .mat-mdc-list-item-icon {
-  margin-right: 14px !important;
-  width: 22px;
-  height: 22px;
-  font-size: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 :host ::ng-deep .nav-item.mdc-list-item {
   align-items: center;
-  min-height: 52px;
-}
-
-/* Coluna fixa do ícone (start) + alinhamento vertical */
-:host ::ng-deep .nav-item .mdc-list-item__start {
-  width: 42px;
-  min-width: 42px;
-  margin-left: 6px;
-  margin-right: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
+  min-height: 46px;
 }
 
 :host ::ng-deep .nav-item .mdc-list-item__content {
@@ -174,12 +196,8 @@
   min-width: 0;
 }
 
-:host ::ng-deep .nav-item .mat-mdc-list-item-icon {
-  margin: 0 !important;
-}
-
 :host ::ng-deep .nav-item .mdc-list-item__primary-text {
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: -0.01em;
   font-size: 15px;
   line-height: 1;
@@ -189,15 +207,11 @@
 }
 
 :host ::ng-deep .nav-item .mdc-list-item__content {
-  padding: 14px 12px !important;
+  padding: 12px 14px !important;
 }
 
-:host ::ng-deep .nav-item.active .mat-mdc-list-item-icon {
-  color: rgba(37, 99, 235, 0.95);
-}
-
-:host ::ng-deep .nav-item .mat-mdc-list-item-icon {
-  color: rgba(0, 0, 0, 0.62);
+:host ::ng-deep .nav-item.active.nav-subitem::before {
+  background: rgba(37, 99, 235, 0.95);
 }
 
 :host ::ng-deep .nav-item.active .mdc-list-item__primary-text {
