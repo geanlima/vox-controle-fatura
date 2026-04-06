@@ -13,7 +13,7 @@ import { ImportacaoFaturaApiService } from '../../core/services/importacao-fatur
 import { FaturaImportada, LancamentoImportado } from '../../core/models/importacao-fatura.model';
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
-import { CartaoCreditoResumo, LayoutParserTipo, LocalDbService } from '../../core/services/local-db.service';
+import { CartaoCreditoResumo, LayoutParserTipo } from '../../core/services/local-db.service';
 import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 
 @Component({
@@ -61,7 +61,6 @@ export class ImportarFaturaComponent implements OnInit {
     private api: ImportacaoFaturaApiService,
     private faturaState: FaturaStateService,
     private categoria: CategoriaService,
-    private localDb: LocalDbService,
     private voxFinanceApi: VoxFinanceApiService,
     private route: ActivatedRoute,
     private router: Router
@@ -95,7 +94,14 @@ export class ImportarFaturaComponent implements OnInit {
 
   private async carregarCartoes(): Promise<void> {
     try {
-      this.cartoes = await this.localDb.listarCartoes();
+      const rows = await this.voxFinanceApi.listarCartoes();
+      this.cartoes = rows.map((c) => ({
+        id: c.id,
+        nome: c.nome,
+        bandeira: c.bandeira ?? undefined,
+        ultimos4: c.ultimos4 ?? undefined,
+        layoutId: c.layout_id ?? undefined,
+      }));
     } catch {
       this.cartoes = [];
     }
@@ -131,8 +137,8 @@ export class ImportarFaturaComponent implements OnInit {
     let layout: LayoutParserTipo = 'itau';
     if (cartao.layoutId) {
       try {
-        const l = await this.localDb.obterLayout(cartao.layoutId);
-        if (l) {
+        const l = await this.voxFinanceApi.obterLayout(cartao.layoutId);
+        if (l?.tipo === 'itau' || l?.tipo === 'itau-uniclass' || l?.tipo === 'generico') {
           layout = l.tipo;
         }
       } catch {

@@ -78,6 +78,10 @@ export class VoxFinanceApiService {
     return await firstValueFrom(this.http.get<ApiLayoutOut[]>(`${this.baseUrl}/layouts`));
   }
 
+  async obterLayout(id: string): Promise<ApiLayoutOut> {
+    return await firstValueFrom(this.http.get<ApiLayoutOut>(`${this.baseUrl}/layouts/${id}`));
+  }
+
   async criarLayout(payload: { nome: string; tipo: ApiLayoutOut['tipo'] }): Promise<ApiLayoutOut> {
     return await firstValueFrom(this.http.post<ApiLayoutOut>(`${this.baseUrl}/layouts`, payload));
   }
