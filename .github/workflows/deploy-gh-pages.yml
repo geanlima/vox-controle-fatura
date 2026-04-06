@@ -35,14 +35,22 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           npm run build -- --base-href "/${REPO_NAME}/"
 
+      - name: Detect output directory
+        run: |
+          if [ -f "dist/vox-controle-fatura/browser/index.html" ]; then
+            echo "PAGES_PATH=dist/vox-controle-fatura/browser" >> "$GITHUB_ENV"
+          else
+            echo "PAGES_PATH=dist/vox-controle-fatura" >> "$GITHUB_ENV"
+          fi
+
       - name: SPA fallback (404.html)
         run: |
-          cp "dist/vox-controle-fatura/browser/index.html" "dist/vox-controle-fatura/browser/404.html"
+          cp "${PAGES_PATH}/index.html" "${PAGES_PATH}/404.html"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/vox-controle-fatura/browser
+          path: ${{ env.PAGES_PATH }}
 
   deploy:
     needs: build
