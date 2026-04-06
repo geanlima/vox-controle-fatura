@@ -37,7 +37,7 @@ jobs:
 
       - name: Detect output directory
         run: |
-          if [ -f "dist/vox-controle-fatura/browser/index.html" ]; then
+          if [ -d "dist/vox-controle-fatura/browser" ]; then
             echo "PAGES_PATH=dist/vox-controle-fatura/browser" >> "$GITHUB_ENV"
           else
             echo "PAGES_PATH=dist/vox-controle-fatura" >> "$GITHUB_ENV"
@@ -45,6 +45,15 @@ jobs:
 
       - name: SPA fallback (404.html)
         run: |
+          # Angular SSR/prerender pode não gerar /browser/index.html, apenas /browser/<rota>/index.html.
+          # Para GitHub Pages (SPA), garantimos um index.html na raiz do artefato.
+          if [ ! -f "${PAGES_PATH}/index.html" ] && [ -d "${PAGES_PATH}" ]; then
+            FIRST_INDEX="$(find "${PAGES_PATH}" -maxdepth 2 -type f -name index.html | head -n 1)"
+            if [ -n "${FIRST_INDEX}" ]; then
+              cp "${FIRST_INDEX}" "${PAGES_PATH}/index.html"
+            fi
+          fi
+
           cp "${PAGES_PATH}/index.html" "${PAGES_PATH}/404.html"
 
       - name: Upload artifact
