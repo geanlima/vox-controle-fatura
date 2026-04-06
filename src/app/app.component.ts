@@ -34,9 +34,9 @@ export class AppComponent {
   private readonly bo = inject(BreakpointObserver);
   isDesktop = signal(false);
   search = signal('');
-  cadastroAberto = signal(true);
-  faturaAberto = signal(true);
-  movimentoAberto = signal(true);
+  cadastroAberto = signal(false);
+  faturaAberto = signal(false);
+  movimentoAberto = signal(false);
 
   constructor() {
     this.bo.observe(['(min-width: 980px)']).subscribe((r) => this.isDesktop.set(r.matches));

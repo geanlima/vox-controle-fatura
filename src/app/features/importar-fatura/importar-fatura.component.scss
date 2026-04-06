@@ -97,6 +97,21 @@
   font-weight: 600;
 }
 
+.sync {
+  margin: 6px 0 0;
+  font-weight: 600;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.sync.ok {
+  color: #1b5e20;
+}
+
+.sync.fail {
+  color: #b00020;
+}
+
 .full-width {
   width: 100%;
 }

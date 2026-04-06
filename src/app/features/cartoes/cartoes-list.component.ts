@@ -151,7 +151,9 @@ export class CartoesListComponent implements OnInit {
   }
 
   nomeTipoLayout(tipo: LayoutParserTipo): string {
-    return tipo === 'itau' ? 'Itaú' : 'Genérico';
+    if (tipo === 'itau') return 'Itaú';
+    if (tipo === 'itau-uniclass') return 'Itaú Uniclass';
+    return 'Genérico';
   }
 }
 

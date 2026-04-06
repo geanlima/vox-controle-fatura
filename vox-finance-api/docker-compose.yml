@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: vox_finance
+      MYSQL_USER: vox
+      MYSQL_PASSWORD: voxpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DB: vox_finance
+      MYSQL_USER: vox
+      MYSQL_PASSWORD: voxpass
+      API_PORT: "8080"
+      API_CORS_ORIGINS: "http://localhost:4200,http://localhost:3000"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+

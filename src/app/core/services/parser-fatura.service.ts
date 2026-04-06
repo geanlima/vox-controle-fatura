@@ -36,10 +36,10 @@ export class ParserFaturaService {
       .replace(/\n{2,}/g, '\n');
 
     const regexLancamento =
-      /(\d{2}\/\d{2})(?:\/\d{2,4})?\s+([^\n]*?)\s+(?:R\$\s*)?(\(?\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})*|\d+),\d{2}\s*\)?\s*[-−]?)/g;
+      /(\d{2}\s*\/\s*\d{2})(?:\s*\/\s*\d{2,4})?\s+([^\n]*?)\s+(?:R\$\s*)?(\(?\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})*|\d+)\s*,\s*\d{2}\s*\)?\s*[-−]?)/g;
 
     for (const match of textoNormalizado.matchAll(regexLancamento)) {
-      const data = match[1];
+      const data = this.normalizarData(match[1] ?? '');
       const descricao = (match[2] ?? '').trim();
       const valorTexto = (match[3] ?? '').trim();
 
@@ -123,6 +123,7 @@ export class ParserFaturaService {
 
   private deveIgnorarLancamento(descricao: string): boolean {
     const texto = this.normalizarTexto(descricao);
+    const textoCompacto = texto.replace(/\s+/g, '');
 
     if (!texto || texto === '-' || texto.startsWith('=')) {
       return true;
@@ -133,7 +134,11 @@ export class ParserFaturaService {
       'lancamentos anterior',
       'total desta fatura',
       'total fatura',
+      'total dos lancamentos atuais',
       'pagamento recebido',
+      'pagamento efetuado',
+      'pagamentos efetuados',
+      'total dos pagamentos',
       'saldo anterior',
       'encargos',
       'juros',
@@ -145,9 +150,17 @@ export class ParserFaturaService {
       'proxima fatura',
       'demais faturas',
       'total para proximas faturas',
+      'compras parceladas - proximas faturas',
+      'resumo da fatura',
+      'limites de credito',
+      'limite total de credito',
+      'limite disponivel',
     ];
 
-    return termosIgnorados.some((termo) => texto.includes(termo));
+    return termosIgnorados.some((termo) => {
+      const termoCompacto = termo.replace(/\s+/g, '');
+      return texto.includes(termo) || textoCompacto.includes(termoCompacto);
+    });
   }
 
   private normalizarTexto(texto: string): string {
@@ -236,12 +249,30 @@ export class ParserFaturaService {
   private extrairCompetencia(texto: string, layout: LayoutParserTipo): string {
     // Hoje, Itaú e Genérico compartilham a mesma extração (MM/YYYY). Mantém o switch
     // para facilitar a inclusão de bancos com padrão diferente.
-    if (layout === 'itau' || layout === 'generico') {
-      const match = texto.match(/\b(0[1-9]|1[0-2])\/\d{4}\b/);
-      return match?.[0] ?? 'N/A';
+    if (layout === 'itau' || layout === 'itau-uniclass' || layout === 'generico') {
+      // 1) formato direto MM/YYYY
+      const matchMesAno = texto.match(/\b(0[1-9]|1[0-2])\s*\/\s*(\d{4})\b/);
+      if (matchMesAno) {
+        const mes = matchMesAno[1];
+        const ano = matchMesAno[2];
+        return `${mes}/${ano}`;
+      }
+
+      // 2) fallback: pega de uma data completa DD/MM/YYYY (ex.: vencimento)
+      const matchDataCompleta = texto.match(/\b\d{2}\s*\/\s*(0[1-9]|1[0-2])\s*\/\s*(\d{4})\b/);
+      if (matchDataCompleta) {
+        const mes = matchDataCompleta[1];
+        const ano = matchDataCompleta[2];
+        return `${mes}/${ano}`;
+      }
+
+      return 'N/A';
     }
-    const match = texto.match(/\b(0[1-9]|1[0-2])\/\d{4}\b/);
-    return match?.[0] ?? 'N/A';
+    const match = texto.match(/\b(0[1-9]|1[0-2])\s*\/\s*(\d{4})\b/);
+    if (match) {
+      return `${match[1]}/${match[2]}`;
+    }
+    return 'N/A';
   }
 
   private calcularTotal(lancamentos: Lancamento[]): number {
@@ -296,5 +327,12 @@ export class ParserFaturaService {
 
     const valor = Number(apenasNumeros);
     return negativo ? -Math.abs(valor) : valor;
+  }
+
+  private normalizarData(dataTexto: string): string {
+    const bruto = dataTexto.replace(/\s/g, '');
+    const m = bruto.match(/^(\d{2})\/(\d{2})$/);
+    if (!m) return bruto;
+    return `${m[1]}/${m[2]}`;
   }
 }

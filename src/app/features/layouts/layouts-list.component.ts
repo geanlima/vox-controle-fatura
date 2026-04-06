@@ -55,7 +55,9 @@ export class LayoutsListComponent implements OnInit {
   }
 
   nomeTipo(tipo: LayoutParserTipo): string {
-    return tipo === 'itau' ? 'Itaú' : 'Genérico';
+    if (tipo === 'itau') return 'Itaú';
+    if (tipo === 'itau-uniclass') return 'Itaú Uniclass';
+    return 'Genérico';
   }
 
   async criar(): Promise<void> {
@@ -81,9 +83,9 @@ export class LayoutsListComponent implements OnInit {
     const n = nome.trim();
     if (!n) return;
 
-    const tipo = prompt('Tipo do parser: itau ou generico', l.tipo) as LayoutParserTipo | null;
+    const tipo = prompt('Tipo do parser: itau, itau-uniclass ou generico', l.tipo) as LayoutParserTipo | null;
     if (tipo === null) return;
-    if (tipo !== 'itau' && tipo !== 'generico') {
+    if (tipo !== 'itau' && tipo !== 'itau-uniclass' && tipo !== 'generico') {
       this.erro = 'Tipo inválido.';
       return;
     }

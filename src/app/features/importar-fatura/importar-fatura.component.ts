@@ -14,6 +14,7 @@ import { FaturaImportada, LancamentoImportado } from '../../core/models/importac
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
 import { CartaoCreditoResumo, LayoutParserTipo, LocalDbService } from '../../core/services/local-db.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 
 @Component({
   selector: 'app-importar-fatura',
@@ -36,6 +37,8 @@ export class ImportarFaturaComponent implements OnInit {
   carregando = false;
   erro = '';
   sucesso = '';
+  syncMsg = '';
+  syncOk: boolean | null = null;
   resultado: FaturaImportada | null = null;
 
   cartoes: CartaoCreditoResumo[] = [];
@@ -59,6 +62,7 @@ export class ImportarFaturaComponent implements OnInit {
     private faturaState: FaturaStateService,
     private categoria: CategoriaService,
     private localDb: LocalDbService,
+    private voxFinanceApi: VoxFinanceApiService,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -235,6 +239,8 @@ export class ImportarFaturaComponent implements OnInit {
   async salvarFatura(): Promise<void> {
     this.erro = '';
     this.sucesso = '';
+    this.syncMsg = '';
+    this.syncOk = null;
 
     const cartao = this.getCartaoSelecionado();
     if (!cartao) {
@@ -253,6 +259,17 @@ export class ImportarFaturaComponent implements OnInit {
 
     try {
       await this.faturaState.salvarFaturaAtual();
+      // Envia para a API (não bloqueia o uso local se falhar)
+      try {
+        if (this.resultado) {
+          await this.voxFinanceApi.enviarFaturaImportada(this.resultado);
+          this.syncOk = true;
+          this.syncMsg = 'Sincronizado com a API.';
+        }
+      } catch {
+        this.syncOk = false;
+        this.syncMsg = 'Falha ao sincronizar com a API (salvo localmente).';
+      }
       this.sucesso = 'Fatura salva com sucesso.';
     } catch {
       this.erro = 'Erro ao salvar a fatura.';

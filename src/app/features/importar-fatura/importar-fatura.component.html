@@ -74,6 +74,10 @@
         </button>
         <a mat-button routerLink="/faturas" *ngIf="temLancamentos()">Ver faturas salvas</a>
       </div>
+      
+      <p *ngIf="syncMsg" class="sync" [class.ok]="syncOk === true" [class.fail]="syncOk === false">
+        {{ syncMsg }}
+      </p>
 
       <div *ngIf="temPossivelDuplicata()" class="aviso-duplicata">
         <strong>Possível duplicidade</strong>

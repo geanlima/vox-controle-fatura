@@ -15,6 +15,7 @@
 
     <mat-card-content>
       <p *ngIf="erro" class="erro">{{ erro }}</p>
+      <p *ngIf="sucesso" class="sucesso">{{ sucesso }}</p>
 
       <p *ngIf="carregando">Carregando...</p>
 
@@ -55,6 +56,9 @@
           <td mat-cell *matCellDef="let f" class="acoes">
             <button mat-button color="primary" (click)="abrir(f.id)">Ver</button>
             <button mat-button (click)="editar(f.id)">Editar</button>
+            <button mat-button (click)="reenviarParaApi(f.id)" [disabled]="reenviandoId === f.id">
+              {{ reenviandoId === f.id ? 'Reenviando...' : 'Reenviar API' }}
+            </button>
             <button mat-button color="warn" (click)="excluir(f.id)">Excluir</button>
           </td>
         </ng-container>
