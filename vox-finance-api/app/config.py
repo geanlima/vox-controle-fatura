@@ -20,7 +20,14 @@ class Settings:
         # Prefer single DATABASE_URL (prod). Example:
         # postgresql+psycopg://user:pass@host:5432/dbname
         if self.database_url_env.strip():
-            return self.database_url_env.strip()
+            raw = self.database_url_env.strip()
+            # Neon commonly provides `postgresql://...` which defaults to psycopg2.
+            # We use `psycopg` (v3), so normalize the scheme for SQLAlchemy.
+            if raw.startswith("postgres://"):
+                raw = "postgresql://" + raw[len("postgres://") :]
+            if raw.startswith("postgresql://") and not raw.startswith("postgresql+"):
+                raw = "postgresql+psycopg://" + raw[len("postgresql://") :]
+            return raw
 
         # Local default for docker-compose (Postgres)
         return "postgresql+psycopg://vox:voxpass@localhost:5433/vox_finance"
