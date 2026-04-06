@@ -37,21 +37,37 @@ jobs:
 
       - name: Detect output directory
         run: |
+          # Angular `outputMode: "server"` outputs `dist/<app>/browser` for static assets.
           if [ -d "dist/vox-controle-fatura/browser" ]; then
             echo "PAGES_PATH=dist/vox-controle-fatura/browser" >> "$GITHUB_ENV"
-          else
+          elif [ -d "dist/vox-controle-fatura" ]; then
             echo "PAGES_PATH=dist/vox-controle-fatura" >> "$GITHUB_ENV"
+          else
+            echo "Build output not found under dist/" >&2
+            ls -la dist || true
+            exit 1
           fi
 
       - name: SPA fallback (404.html)
         run: |
-          # Angular SSR/prerender pode não gerar /browser/index.html, apenas /browser/<rota>/index.html.
-          # Para GitHub Pages (SPA), garantimos um index.html na raiz do artefato.
-          if [ ! -f "${PAGES_PATH}/index.html" ] && [ -d "${PAGES_PATH}" ]; then
-            FIRST_INDEX="$(find "${PAGES_PATH}" -maxdepth 2 -type f -name index.html | head -n 1)"
-            if [ -n "${FIRST_INDEX}" ]; then
-              cp "${FIRST_INDEX}" "${PAGES_PATH}/index.html"
+          # Angular `outputMode: "server"` generates `index.csr.html` (CSR shell) instead of `index.html`.
+          # GitHub Pages needs `index.html` at the artifact root.
+          if [ ! -f "${PAGES_PATH}/index.html" ]; then
+            if [ -f "${PAGES_PATH}/index.csr.html" ]; then
+              cp "${PAGES_PATH}/index.csr.html" "${PAGES_PATH}/index.html"
+            else
+              # Fallback: prerender may only create /<route>/index.html (no root index).
+              FIRST_INDEX="$(find "${PAGES_PATH}" -type f -name index.html | head -n 1)"
+              if [ -n "${FIRST_INDEX}" ]; then
+                cp "${FIRST_INDEX}" "${PAGES_PATH}/index.html"
+              fi
             fi
+          fi
+
+          if [ ! -f "${PAGES_PATH}/index.html" ]; then
+            echo "index.html not found in ${PAGES_PATH}" >&2
+            ls -la "${PAGES_PATH}" || true
+            exit 1
           fi
 
           cp "${PAGES_PATH}/index.html" "${PAGES_PATH}/404.html"
