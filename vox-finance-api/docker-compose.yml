@@ -1,17 +1,16 @@
 services:
-  mysql:
-    image: mysql:8.4
+  postgres:
+    image: postgres:16-alpine
     environment:
-      MYSQL_DATABASE: vox_finance
-      MYSQL_USER: vox
-      MYSQL_PASSWORD: voxpass
-      MYSQL_ROOT_PASSWORD: rootpass
+      POSTGRES_DB: vox_finance
+      POSTGRES_USER: vox
+      POSTGRES_PASSWORD: voxpass
     ports:
-      - "3308:3306"
+      - "5433:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      test: ["CMD-SHELL", "pg_isready -U vox -d vox_finance"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -21,20 +20,16 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: "3306"
-      MYSQL_DB: vox_finance
-      MYSQL_USER: vox
-      MYSQL_PASSWORD: voxpass
+      DATABASE_URL: postgresql+psycopg://vox:voxpass@postgres:5432/vox_finance
       API_PORT: "8080"
       API_CORS_ORIGINS: "http://localhost:4200,http://localhost:3000"
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  mysql_data:
+  pg_data:
 

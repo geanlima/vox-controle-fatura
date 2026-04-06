@@ -24,8 +24,7 @@ type ApiFaturaCreate = {
 
 @Injectable({ providedIn: 'root' })
 export class VoxFinanceApiService {
-  // MVP: URL fixa. Depois podemos ler de env/variável.
-  private readonly baseUrl = 'http://localhost:8080/api';
+  private readonly baseUrl = this.getBaseUrl();
 
   constructor(private readonly http: HttpClient) {}
 
@@ -52,6 +51,15 @@ export class VoxFinanceApiService {
       parcela_atual: l.parcelaAtual ?? null,
       total_parcelas: l.totalParcelas ?? null,
     };
+  }
+
+  private getBaseUrl(): string {
+    const w = globalThis as unknown as { __VOX_FINANCE_API_BASE__?: unknown };
+    const v = w.__VOX_FINANCE_API_BASE__;
+    if (typeof v === 'string' && v.trim()) {
+      return v.trim().replace(/\/+$/, '');
+    }
+    return 'http://localhost:8080/api';
   }
 }
 
