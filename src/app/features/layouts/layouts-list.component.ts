@@ -8,7 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 
-import { LayoutFaturaResumo, LayoutParserTipo, LocalDbService } from '../../core/services/local-db.service';
+import { LayoutParserTipo } from '../../core/services/local-db.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 
 @Component({
   selector: 'app-layouts-list',
@@ -29,14 +30,14 @@ import { LayoutFaturaResumo, LayoutParserTipo, LocalDbService } from '../../core
 export class LayoutsListComponent implements OnInit {
   carregando = false;
   erro = '';
-  layouts: LayoutFaturaResumo[] = [];
+  layouts: { id: string; nome: string; tipo: LayoutParserTipo | string }[] = [];
 
   nome = '';
   tipo: LayoutParserTipo = 'itau';
 
   displayedColumns = ['nome', 'tipo', 'id', 'acoes'];
 
-  constructor(private readonly db: LocalDbService) {}
+  constructor(private readonly api: VoxFinanceApiService) {}
 
   ngOnInit(): void {
     void this.recarregar();
@@ -46,7 +47,8 @@ export class LayoutsListComponent implements OnInit {
     this.carregando = true;
     this.erro = '';
     try {
-      this.layouts = await this.db.listarLayouts();
+      const rows = await this.api.listarLayouts();
+      this.layouts = rows.map((l) => ({ id: l.id, nome: l.nome, tipo: l.tipo }));
     } catch {
       this.erro = 'Erro ao carregar layouts.';
     } finally {
@@ -68,7 +70,7 @@ export class LayoutsListComponent implements OnInit {
       return;
     }
     try {
-      await this.db.criarLayout({ nome, tipo: this.tipo });
+      await this.api.criarLayout({ nome, tipo: this.tipo });
       this.nome = '';
       this.tipo = 'itau';
       await this.recarregar();
@@ -77,7 +79,7 @@ export class LayoutsListComponent implements OnInit {
     }
   }
 
-  async editar(l: LayoutFaturaResumo): Promise<void> {
+  async editar(l: { id: string; nome: string; tipo: LayoutParserTipo | string }): Promise<void> {
     const nome = prompt('Nome do layout', l.nome);
     if (nome === null) return;
     const n = nome.trim();
@@ -91,18 +93,18 @@ export class LayoutsListComponent implements OnInit {
     }
 
     try {
-      await this.db.atualizarLayout(l.id, { nome: n, tipo });
+      await this.api.patchLayout(l.id, { nome: n, tipo });
       await this.recarregar();
     } catch {
       this.erro = 'Erro ao atualizar layout.';
     }
   }
 
-  async excluir(l: LayoutFaturaResumo): Promise<void> {
+  async excluir(l: { id: string; nome: string; tipo: LayoutParserTipo | string }): Promise<void> {
     const ok = confirm(`Excluir o layout "${l.nome}"?`);
     if (!ok) return;
     try {
-      await this.db.excluirLayout(l.id);
+      await this.api.excluirLayout(l.id);
       await this.recarregar();
     } catch {
       this.erro = 'Erro ao excluir layout.';

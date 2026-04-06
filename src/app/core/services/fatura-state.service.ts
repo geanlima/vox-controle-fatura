@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { FaturaImportada } from '../models/importacao-fatura.model';
 import { LocalDbService } from './local-db.service';
+import { VoxFinanceApiService } from './vox-finance-api.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,7 +15,10 @@ export class FaturaStateService {
 
   possuiFatura = computed(() => this._fatura() !== null);
 
-  constructor(private readonly localDb: LocalDbService) {
+  constructor(
+    private readonly localDb: LocalDbService,
+    private readonly api: VoxFinanceApiService,
+  ) {
     void this.carregarDoBanco();
   }
 
@@ -58,6 +62,33 @@ export class FaturaStateService {
     this._faturaId.set(salva.id);
     this._fatura.set(fatura);
     await this.localDb.setCurrentFaturaId(salva.id);
+    await this.localDb.setCurrentFatura(fatura);
+  }
+
+  async carregarFaturaDaApi(id: string): Promise<void> {
+    const row = await this.api.obterFatura(id);
+    const fatura: FaturaImportada = {
+      banco: row.banco,
+      cartao: row.cartao_nome_snapshot ?? '',
+      competencia: row.competencia,
+      totalFatura: Number(row.total_fatura ?? 0),
+      cartaoId: row.cartao_id ?? null,
+      lancamentos: (row.lancamentos ?? []).map((l) => ({
+        data: l.data,
+        descricao: l.descricao,
+        cidade: l.cidade ?? '',
+        valor: Number(l.valor ?? 0),
+        moeda: l.moeda ?? 'BRL',
+        tipo: 'outro',
+        categoriaSugerida: l.categoria ?? 'Outros',
+        parcelaAtual: l.parcela_atual ?? null,
+        totalParcelas: l.total_parcelas ?? null,
+      })),
+    };
+
+    this._faturaId.set(row.id);
+    this._fatura.set(fatura);
+    await this.localDb.setCurrentFaturaId(row.id);
     await this.localDb.setCurrentFatura(fatura);
   }
 

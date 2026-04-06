@@ -12,8 +12,8 @@ import {
   CartaoCreditoResumo,
   LayoutFaturaResumo,
   LayoutParserTipo,
-  LocalDbService,
 } from '../../core/services/local-db.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 
 @Component({
   selector: 'app-cartoes-list',
@@ -44,7 +44,7 @@ export class CartoesListComponent implements OnInit {
 
   displayedColumns = ['nome', 'bandeira', 'ultimos4', 'layout', 'acoes'];
 
-  constructor(private readonly db: LocalDbService) {}
+  constructor(private readonly api: VoxFinanceApiService) {}
 
   ngOnInit(): void {
     void this.recarregarTudo();
@@ -54,8 +54,15 @@ export class CartoesListComponent implements OnInit {
     this.carregando = true;
     this.erro = '';
     try {
-      this.layouts = await this.db.listarLayouts();
-      this.cartoes = await this.db.listarCartoes();
+      const [layouts, cartoes] = await Promise.all([this.api.listarLayouts(), this.api.listarCartoes()]);
+      this.layouts = layouts.map((l) => ({ id: l.id, nome: l.nome, tipo: l.tipo as LayoutParserTipo }));
+      this.cartoes = cartoes.map((c) => ({
+        id: c.id,
+        nome: c.nome,
+        bandeira: c.bandeira ?? undefined,
+        ultimos4: c.ultimos4 ?? undefined,
+        layoutId: c.layout_id ?? undefined,
+      }));
     } catch {
       this.erro = 'Erro ao carregar cartões.';
     } finally {
@@ -78,13 +85,13 @@ export class CartoesListComponent implements OnInit {
     }
 
     try {
-      const cartao = await this.db.criarCartao({
+      const cartao = await this.api.criarCartao({
         nome,
         bandeira: this.bandeira.trim() || undefined,
         ultimos4: ult4 || undefined,
       });
       if (this.layoutId.trim()) {
-        await this.db.atualizarCartao(cartao.id, { layoutId: this.layoutId.trim() });
+        await this.api.patchCartao(cartao.id, { layout_id: this.layoutId.trim() });
       }
       this.nome = '';
       this.bandeira = '';
@@ -112,7 +119,7 @@ export class CartoesListComponent implements OnInit {
     }
 
     try {
-      await this.db.atualizarCartao(cartao.id, {
+      await this.api.patchCartao(cartao.id, {
         nome: n,
         bandeira: bandeira?.trim() || undefined,
         ultimos4: ultimos4?.trim() || undefined,
@@ -126,7 +133,7 @@ export class CartoesListComponent implements OnInit {
   async alterarLayout(cartaoId: string, layoutId: string): Promise<void> {
     this.erro = '';
     try {
-      await this.db.atualizarCartao(cartaoId, { layoutId: layoutId || undefined });
+      await this.api.patchCartao(cartaoId, { layout_id: layoutId || null });
       await this.recarregarTudo();
     } catch {
       this.erro = 'Erro ao associar layout.';
@@ -137,7 +144,7 @@ export class CartoesListComponent implements OnInit {
     const ok = confirm(`Excluir o cartão "${cartao.nome}"?`);
     if (!ok) return;
     try {
-      await this.db.excluirCartao(cartao.id);
+      await this.api.excluirCartao(cartao.id);
       await this.recarregarTudo();
     } catch {
       this.erro = 'Erro ao excluir cartão.';

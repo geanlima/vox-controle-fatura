@@ -9,9 +9,31 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
-import { LocalDbService, FaturaSalva } from '../../core/services/local-db.service';
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
+
+type ViewLancamento = {
+  id: string;
+  data: string;
+  descricao: string;
+  cidade: string;
+  categoriaSugerida: string;
+  valor: number;
+  parcelaAtual: number | null;
+  totalParcelas: number | null;
+};
+
+type ViewFatura = {
+  id: string;
+  banco: string;
+  cartao: string;
+  competencia: string;
+  totalFatura: number;
+  importedAt: string;
+  updatedAt: string;
+  lancamentos: ViewLancamento[];
+};
 
 @Component({
   selector: 'app-fatura-detalhe',
@@ -35,8 +57,9 @@ export class FaturaDetalheComponent implements OnInit {
   salvando = false;
   erro = '';
   sucesso = '';
-  fatura: FaturaSalva | null = null;
-  private snapshotOriginal: FaturaSalva | null = null;
+  fatura: ViewFatura | null = null;
+  private snapshotOriginal: ViewFatura | null = null;
+  private removidos = new Set<string>();
 
   displayedColumns = [
     'data',
@@ -53,9 +76,9 @@ export class FaturaDetalheComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly db: LocalDbService,
     private readonly faturaState: FaturaStateService,
-    private readonly categoria: CategoriaService
+    private readonly categoria: CategoriaService,
+    private readonly api: VoxFinanceApiService,
   ) {
     this.categorias = this.categoria.listarNomesCategorias();
   }
@@ -74,13 +97,28 @@ export class FaturaDetalheComponent implements OnInit {
     this.erro = '';
     this.sucesso = '';
     try {
-      this.fatura = await this.db.obterFatura(id);
-      if (!this.fatura) {
-        this.erro = 'Fatura não encontrada.';
-        this.snapshotOriginal = null;
-      } else {
-        this.snapshotOriginal = structuredClone(this.fatura);
-      }
+      const row = await this.api.obterFatura(id);
+      this.fatura = {
+        id: row.id,
+        banco: row.banco,
+        cartao: row.cartao_nome_snapshot ?? '—',
+        competencia: row.competencia,
+        totalFatura: Number(row.total_fatura ?? 0),
+        importedAt: row.imported_at,
+        updatedAt: row.updated_at,
+        lancamentos: (row.lancamentos ?? []).map((l) => ({
+          id: l.id,
+          data: l.data,
+          descricao: l.descricao,
+          cidade: l.cidade ?? '',
+          categoriaSugerida: l.categoria ?? 'Outros',
+          valor: Number(l.valor ?? 0),
+          parcelaAtual: l.parcela_atual ?? null,
+          totalParcelas: l.total_parcelas ?? null,
+        })),
+      };
+      this.removidos.clear();
+      this.snapshotOriginal = structuredClone(this.fatura);
     } catch {
       this.erro = 'Erro ao carregar fatura.';
       this.snapshotOriginal = null;
@@ -91,13 +129,13 @@ export class FaturaDetalheComponent implements OnInit {
 
   async abrirNoDashboard(): Promise<void> {
     if (!this.fatura) return;
-    await this.faturaState.carregarFaturaSalva(this.fatura.id);
+    await this.faturaState.carregarFaturaDaApi(this.fatura.id);
     await this.router.navigate(['/dashboard']);
   }
 
   async editar(): Promise<void> {
     if (!this.fatura) return;
-    await this.faturaState.carregarFaturaSalva(this.fatura.id);
+    await this.faturaState.carregarFaturaDaApi(this.fatura.id);
     await this.router.navigate(['/importar'], { queryParams: { manter: '1' } });
   }
 
@@ -106,7 +144,7 @@ export class FaturaDetalheComponent implements OnInit {
     const ok = confirm('Excluir esta fatura importada? Esta ação não pode ser desfeita.');
     if (!ok) return;
     try {
-      await this.faturaState.excluirFaturaSalva(this.fatura.id);
+      await this.api.excluirFatura(this.fatura.id);
       await this.router.navigate(['/faturas']);
     } catch {
       this.erro = 'Erro ao excluir fatura.';
@@ -116,6 +154,7 @@ export class FaturaDetalheComponent implements OnInit {
   cancelarAlteracoes(): void {
     if (!this.snapshotOriginal) return;
     this.fatura = structuredClone(this.snapshotOriginal);
+    this.removidos.clear();
     this.erro = '';
     this.sucesso = '';
   }
@@ -128,22 +167,41 @@ export class FaturaDetalheComponent implements OnInit {
     this.sucesso = '';
 
     try {
-      const total = this.fatura.lancamentos.reduce((acc, l) => acc + (l.valor ?? 0), 0);
-      const patch = {
-        banco: this.fatura.banco,
-        cartao: this.fatura.cartao,
-        competencia: this.fatura.competencia,
-        totalFatura: total,
-        lancamentos: this.fatura.lancamentos.map((l) => ({
-          ...l,
-          descricao: (l.descricao ?? '').toString(),
-          categoriaSugerida: (l.categoriaSugerida ?? '').toString(),
-          ...this.comParcelamento((l.descricao ?? '').toString(), l.parcelaAtual, l.totalParcelas),
-        })),
-        cartaoId: this.fatura.cartaoId ?? null,
-      };
+      // 1) aplica remoções (se houver)
+      for (const id of Array.from(this.removidos)) {
+        await this.api.excluirLancamento(id);
+      }
 
-      await this.db.atualizarFatura(this.fatura.id, patch);
+      // 2) aplica patches em lançamentos alterados
+      const original = this.snapshotOriginal;
+      const origMap = new Map<string, ViewLancamento>();
+      for (const l of original?.lancamentos ?? []) origMap.set(l.id, l);
+
+      for (const l of this.fatura.lancamentos) {
+        const base = origMap.get(l.id);
+        if (!base) continue;
+        const parcelado = this.comParcelamento(l.descricao, l.parcelaAtual, l.totalParcelas);
+        l.parcelaAtual = parcelado.parcelaAtual;
+        l.totalParcelas = parcelado.totalParcelas;
+
+        const mudou =
+          l.descricao !== base.descricao ||
+          l.cidade !== base.cidade ||
+          l.categoriaSugerida !== base.categoriaSugerida ||
+          (l.parcelaAtual ?? null) !== (base.parcelaAtual ?? null) ||
+          (l.totalParcelas ?? null) !== (base.totalParcelas ?? null);
+
+        if (mudou) {
+          await this.api.patchLancamento(l.id, {
+            descricao: l.descricao,
+            cidade: l.cidade,
+            categoria: l.categoriaSugerida,
+            parcela_atual: l.parcelaAtual ?? null,
+            total_parcelas: l.totalParcelas ?? null,
+          });
+        }
+      }
+
       await this.carregar(this.fatura.id);
       this.sucesso = 'Alterações salvas.';
     } catch {
@@ -153,11 +211,12 @@ export class FaturaDetalheComponent implements OnInit {
     }
   }
 
-  removerLancamento(item: { valor: number } & object): void {
+  removerLancamento(item: ViewLancamento): void {
     if (!this.fatura) return;
-    const idx = this.fatura.lancamentos.indexOf(item as any);
+    const idx = this.fatura.lancamentos.findIndex((x) => x.id === item.id);
     if (idx < 0) return;
-    this.fatura.lancamentos = this.fatura.lancamentos.filter((_, i) => i !== idx);
+    this.removidos.add(item.id);
+    this.fatura.lancamentos = this.fatura.lancamentos.filter((x) => x.id !== item.id);
     const total = this.fatura.lancamentos.reduce((acc, l) => acc + (l.valor ?? 0), 0);
     this.fatura.totalFatura = total;
     this.sucesso = '';

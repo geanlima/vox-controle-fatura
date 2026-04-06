@@ -5,9 +5,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 
-import { LocalDbService, FaturaSalvaResumo } from '../../core/services/local-db.service';
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
+
+type FaturaLinha = {
+  id: string;
+  competencia: string;
+  banco: string;
+  cartao: string;
+  totalFatura: number;
+  importedAt: string;
+};
 
 @Component({
   selector: 'app-faturas-list',
@@ -21,12 +29,11 @@ export class FaturasListComponent implements OnInit {
   reenviandoId: string | null = null;
   erro = '';
   sucesso = '';
-  faturas: FaturaSalvaResumo[] = [];
+  faturas: FaturaLinha[] = [];
 
   displayedColumns = ['competencia', 'banco', 'cartao', 'totalFatura', 'importedAt', 'acoes'];
 
   constructor(
-    private readonly db: LocalDbService,
     private readonly faturaState: FaturaStateService,
     private readonly voxFinanceApi: VoxFinanceApiService,
     private readonly router: Router
@@ -41,9 +48,17 @@ export class FaturasListComponent implements OnInit {
     this.erro = '';
     this.sucesso = '';
     try {
-      this.faturas = await this.db.listarFaturas();
+      const rows = await this.voxFinanceApi.listarFaturas();
+      this.faturas = rows.map((f) => ({
+        id: f.id,
+        competencia: f.competencia,
+        banco: f.banco,
+        cartao: f.cartao_nome_snapshot ?? '—',
+        totalFatura: Number(f.total_fatura ?? 0),
+        importedAt: f.imported_at,
+      }));
     } catch {
-      this.erro = 'Erro ao carregar faturas salvas.';
+      this.erro = 'Erro ao carregar faturas.';
     } finally {
       this.carregando = false;
     }
@@ -54,7 +69,7 @@ export class FaturasListComponent implements OnInit {
   }
 
   async editar(id: string): Promise<void> {
-    await this.faturaState.carregarFaturaSalva(id);
+    await this.faturaState.carregarFaturaDaApi(id);
     await this.router.navigate(['/importar'], { queryParams: { manter: '1' } });
   }
 
@@ -63,7 +78,7 @@ export class FaturasListComponent implements OnInit {
     if (!ok) return;
 
     try {
-      await this.faturaState.excluirFaturaSalva(id);
+      await this.voxFinanceApi.excluirFatura(id);
       await this.recarregar();
     } catch {
       this.erro = 'Erro ao excluir fatura.';
@@ -75,15 +90,10 @@ export class FaturasListComponent implements OnInit {
     this.sucesso = '';
     this.reenviandoId = id;
     try {
-      const f = await this.db.obterFatura(id);
-      if (!f) {
-        this.erro = 'Fatura não encontrada.';
-        return;
-      }
-      await this.voxFinanceApi.enviarFaturaImportada(f);
-      this.sucesso = 'Sincronizado com a API.';
+      await this.voxFinanceApi.obterFatura(id);
+      this.sucesso = 'Já está na API.';
     } catch {
-      this.erro = 'Falha ao sincronizar com a API.';
+      this.erro = 'Falha ao consultar a API.';
     } finally {
       this.reenviandoId = null;
     }

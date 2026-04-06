@@ -24,7 +24,8 @@ import { Chart, registerables } from 'chart.js';
 import { FaturaStateService } from '../../core/services/fatura-state.service';
 import { CategoriaService } from '../../core/services/categoria.service';
 import { LancamentoImportado } from '../../core/models/importacao-fatura.model';
-import { CartaoCreditoResumo, LocalDbService } from '../../core/services/local-db.service';
+import { CartaoCreditoResumo } from '../../core/services/local-db.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 import {
   CategoriaLancamentosDialogComponent,
   CategoriaLancamentosDialogData,
@@ -68,7 +69,7 @@ export class DashboardComponent implements AfterViewInit {
   private faturaState = inject(FaturaStateService);
   private categoria = inject(CategoriaService);
   private router = inject(Router);
-  private db = inject(LocalDbService);
+  private api = inject(VoxFinanceApiService);
   private dialog = inject(MatDialog);
 
   categoriasOpcoes = this.categoria.listarNomesCategorias();
@@ -273,8 +274,16 @@ export class DashboardComponent implements AfterViewInit {
 
   private async inicializarSelecao(): Promise<void> {
     try {
-      const cartoes = await this.db.listarCartoes();
-      this.cartoes.set(cartoes);
+      const cartoes = await this.api.listarCartoes();
+      this.cartoes.set(
+        cartoes.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          bandeira: c.bandeira ?? undefined,
+          ultimos4: c.ultimos4 ?? undefined,
+          layoutId: c.layout_id ?? undefined,
+        })),
+      );
 
       const atual = this.fatura();
       if (atual?.cartaoId) {
@@ -297,7 +306,23 @@ export class DashboardComponent implements AfterViewInit {
       return;
     }
     try {
-      const comps = await this.db.listarCompetenciasPorCartao(cartaoId);
+      const faturas = await this.api.listarFaturas({ cartao_id: cartaoId });
+      const set = new Set<string>();
+      for (const f of faturas) {
+        if (f.competencia) set.add(f.competencia);
+      }
+      const comps = Array.from(set);
+      // ordena desc por ano/mes quando estiver no formato MM/YYYY
+      comps.sort((a, b) => {
+        const pa = a.split('/').map((x) => Number(x));
+        const pb = b.split('/').map((x) => Number(x));
+        const ma = pa[0] ?? 0;
+        const ya = pa[1] ?? 0;
+        const mb = pb[0] ?? 0;
+        const yb = pb[1] ?? 0;
+        if (ya !== yb) return yb - ya;
+        return mb - ma;
+      });
       this.competencias.set(comps);
       if (comps.length && !this.competenciaSelecionada()) {
         this.competenciaSelecionada.set(comps[0] ?? '');
@@ -315,9 +340,10 @@ export class DashboardComponent implements AfterViewInit {
 
     this.carregandoSelecao.set(true);
     try {
-      const id = await this.db.obterFaturaIdPorCartaoCompetencia(cartaoId, comp);
-      if (id) {
-        await this.faturaState.carregarFaturaSalva(id);
+      const faturas = await this.api.listarFaturas({ cartao_id: cartaoId, competencia: comp });
+      const row = faturas[0];
+      if (row?.id) {
+        await this.faturaState.carregarFaturaDaApi(row.id);
       }
     } finally {
       this.carregandoSelecao.set(false);

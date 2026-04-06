@@ -9,7 +9,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 
 import { CategoriaService } from '../../core/services/categoria.service';
-import { LocalDbService, CartaoCreditoResumo } from '../../core/services/local-db.service';
+import { CartaoCreditoResumo } from '../../core/services/local-db.service';
+import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 import { LancamentoImportado } from '../../core/models/importacao-fatura.model';
 
 @Component({
@@ -29,7 +30,7 @@ import { LancamentoImportado } from '../../core/models/importacao-fatura.model';
   styleUrl: './lancamento-manual.component.scss',
 })
 export class LancamentoManualComponent implements OnInit {
-  private readonly db = inject(LocalDbService);
+  private readonly api = inject(VoxFinanceApiService);
   private readonly categoria = inject(CategoriaService);
 
   erro = signal('');
@@ -63,7 +64,16 @@ export class LancamentoManualComponent implements OnInit {
 
   private async carregarCartoes(): Promise<void> {
     try {
-      this.cartoes.set(await this.db.listarCartoes());
+      const cartoes = await this.api.listarCartoes();
+      this.cartoes.set(
+        cartoes.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          bandeira: c.bandeira ?? undefined,
+          ultimos4: c.ultimos4 ?? undefined,
+          layoutId: c.layout_id ?? undefined,
+        })),
+      );
     } catch {
       this.cartoes.set([]);
     }
@@ -81,7 +91,20 @@ export class LancamentoManualComponent implements OnInit {
     if (!id) return;
 
     try {
-      const comps = await this.db.listarCompetenciasPorCartao(id);
+      const faturas = await this.api.listarFaturas({ cartao_id: id });
+      const set = new Set<string>();
+      for (const f of faturas) if (f.competencia) set.add(f.competencia);
+      const comps = Array.from(set);
+      comps.sort((a, b) => {
+        const pa = a.split('/').map((x) => Number(x));
+        const pb = b.split('/').map((x) => Number(x));
+        const ma = pa[0] ?? 0;
+        const ya = pa[1] ?? 0;
+        const mb = pb[0] ?? 0;
+        const yb = pb[1] ?? 0;
+        if (ya !== yb) return yb - ya;
+        return mb - ma;
+      });
       this.competencias.set(comps);
       if (comps.length) {
         this.competencia.set(comps[0] ?? '');
@@ -97,27 +120,31 @@ export class LancamentoManualComponent implements OnInit {
     this.erro.set('');
     this.sucesso.set('');
     try {
-      const id = await this.db.obterFaturaIdPorCartaoCompetencia(this.cartaoId().trim(), this.competencia().trim());
-      if (!id) {
+      const rows = await this.api.listarFaturas({ cartao_id: this.cartaoId().trim(), competencia: this.competencia().trim() });
+      const row = rows[0];
+      if (!row?.id) {
         this.fatura.set(null);
         this.faturaId.set(null);
         this.erro.set('Fatura não encontrada para este cartão/mês.');
         return;
       }
-      const row = await this.db.obterFatura(id);
-      if (!row) {
-        this.fatura.set(null);
-        this.faturaId.set(null);
-        this.erro.set('Fatura não encontrada.');
-        return;
-      }
-      this.faturaId.set(id);
+      this.faturaId.set(row.id);
       this.fatura.set({
         banco: row.banco,
-        cartao: row.cartao,
+        cartao: row.cartao_nome_snapshot ?? '',
         competencia: row.competencia,
-        totalFatura: row.totalFatura,
-        lancamentos: row.lancamentos ?? [],
+        totalFatura: Number(row.total_fatura ?? 0),
+        lancamentos: (row.lancamentos ?? []).map((l) => ({
+          data: l.data,
+          descricao: l.descricao,
+          cidade: l.cidade ?? '',
+          valor: Number(l.valor ?? 0),
+          moeda: l.moeda ?? 'BRL',
+          tipo: 'outro',
+          categoriaSugerida: l.categoria ?? 'Outros',
+          parcelaAtual: l.parcela_atual ?? null,
+          totalParcelas: l.total_parcelas ?? null,
+        })),
       });
     } catch {
       this.erro.set('Erro ao carregar fatura.');
@@ -162,21 +189,19 @@ export class LancamentoManualComponent implements OnInit {
       totalParcelas: null,
     };
 
-    const novos = [...f.lancamentos, item];
-    const total = novos.reduce((acc, x) => acc + x.valor, 0);
-    const atualizado = { ...f, lancamentos: novos, totalFatura: total };
-
     this.carregando.set(true);
     try {
-      await this.db.atualizarFatura(id, {
-        banco: atualizado.banco,
-        cartao: atualizado.cartao,
-        cartaoId: this.cartaoId(),
-        competencia: atualizado.competencia,
-        totalFatura: atualizado.totalFatura,
-        lancamentos: atualizado.lancamentos,
+      await this.api.criarLancamento(id, {
+        data: item.data,
+        descricao: item.descricao,
+        cidade: item.cidade ?? '',
+        categoria: item.categoriaSugerida ?? 'Outros',
+        valor: Number(item.valor),
+        moeda: item.moeda ?? 'BRL',
+        parcela_atual: item.parcelaAtual ?? null,
+        total_parcelas: item.totalParcelas ?? null,
       });
-      this.fatura.set(atualizado);
+      await this.carregarFatura();
       this.data.set('');
       this.descricao.set('');
       this.cidade.set('');
@@ -190,29 +215,23 @@ export class LancamentoManualComponent implements OnInit {
   }
 
   async remover(item: LancamentoImportado): Promise<void> {
-    const f = this.fatura();
     const id = this.faturaId();
-    if (!f || !id) return;
-    const idx = f.lancamentos.indexOf(item);
-    if (idx < 0) return;
-
-    const novos = f.lancamentos.filter((_, i) => i !== idx);
-    const total = novos.reduce((acc, x) => acc + x.valor, 0);
-    const atualizado = { ...f, lancamentos: novos, totalFatura: total };
+    if (!id) return;
+    // A tela manual não tem o ID do lançamento (porque antes era Dexie).
+    // Por enquanto, recarregamos a fatura e removemos pelo primeiro match (data/descricao/valor).
+    // Se preferir, posso exibir o ID e usar direto.
+    const atual = await this.api.obterFatura(id);
+    const alvo = (atual.lancamentos ?? []).find(
+      (l) => l.data === item.data && l.descricao === item.descricao && Number(l.valor) === Number(item.valor),
+    );
+    if (!alvo) return;
 
     this.carregando.set(true);
     this.erro.set('');
     this.sucesso.set('');
     try {
-      await this.db.atualizarFatura(id, {
-        banco: atualizado.banco,
-        cartao: atualizado.cartao,
-        cartaoId: this.cartaoId(),
-        competencia: atualizado.competencia,
-        totalFatura: atualizado.totalFatura,
-        lancamentos: atualizado.lancamentos,
-      });
-      this.fatura.set(atualizado);
+      await this.api.excluirLancamento(alvo.id);
+      await this.carregarFatura();
       this.sucesso.set('Lançamento removido.');
     } catch {
       this.erro.set('Erro ao remover lançamento.');

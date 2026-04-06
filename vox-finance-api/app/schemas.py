@@ -7,6 +7,11 @@ class LayoutCreate(BaseModel):
     tipo: str = Field(pattern=r"^(itau|itau-uniclass|generico)$")
 
 
+class LayoutPatch(BaseModel):
+    nome: str | None = None
+    tipo: str | None = Field(default=None, pattern=r"^(itau|itau-uniclass|generico)$")
+
+
 class LayoutOut(BaseModel):
     id: str
     nome: str
@@ -20,6 +25,13 @@ class LayoutOut(BaseModel):
 
 class CartaoCreate(BaseModel):
     nome: str
+    bandeira: str | None = None
+    ultimos4: str | None = None
+    layout_id: str | None = None
+
+
+class CartaoPatch(BaseModel):
+    nome: str | None = None
     bandeira: str | None = None
     ultimos4: str | None = None
     layout_id: str | None = None
@@ -63,6 +75,13 @@ class FaturaCreate(BaseModel):
     cartao_id: str | None = None
     cartao_nome_snapshot: str | None = None
     lancamentos: list[LancamentoIn] = []
+
+
+class FaturaPatch(BaseModel):
+    banco: str | None = None
+    competencia: str | None = None
+    cartao_id: str | None = None
+    cartao_nome_snapshot: str | None = None
 
 
 class FaturaOut(BaseModel):
