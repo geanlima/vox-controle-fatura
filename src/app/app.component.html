@@ -74,6 +74,25 @@
           </a>
         </div>
       </div>
+
+      <div class="nav-sep"></div>
+
+      <div class="nav-group">
+        <button type="button" class="nav-group-title tree-header" (click)="toggleGrupo('configuracoes')">
+          <span>Configurações</span>
+          <span class="tree-toggle">{{ configuracoesAberto() ? '−' : '+' }}</span>
+        </button>
+        <div *ngIf="configuracoesAberto()">
+          <a
+            mat-list-item
+            routerLink="/configuracoes/parametros"
+            routerLinkActive="active"
+            (click)="!isDesktop() && sidenav.close()"
+            class="nav-item nav-subitem">
+            <span matListItemTitle>Parâmetro</span>
+          </a>
+        </div>
+      </div>
     </div>
   </mat-sidenav>
 

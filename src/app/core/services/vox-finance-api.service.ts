@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { FaturaImportada, LancamentoImportado } from '../models/importacao-fatura.model';
+import { ApiConfigService } from './api-config.service';
 
 export type ApiLayoutOut = {
   id: string;
@@ -59,9 +60,14 @@ export type ApiFaturaOut = {
 
 @Injectable({ providedIn: 'root' })
 export class VoxFinanceApiService {
-  private readonly baseUrl = this.getBaseUrl();
+  constructor(
+    private readonly http: HttpClient,
+    private readonly cfg: ApiConfigService,
+  ) {}
 
-  constructor(private readonly http: HttpClient) {}
+  private get baseUrl(): string {
+    return this.cfg.getResolvedApiBaseUrl();
+  }
 
   async health(): Promise<{ ok: boolean }> {
     return await firstValueFrom(this.http.get<{ ok: boolean }>(`${this.baseUrl}/health`));
@@ -162,13 +168,6 @@ export class VoxFinanceApiService {
     };
   }
 
-  private getBaseUrl(): string {
-    const w = globalThis as unknown as { __VOX_FINANCE_API_BASE__?: unknown };
-    const v = w.__VOX_FINANCE_API_BASE__;
-    if (typeof v === 'string' && v.trim()) {
-      return v.trim().replace(/\/+$/, '');
-    }
-    return 'http://localhost:8080/api';
-  }
+  // baseUrl is resolved via ApiConfigService
 }
 

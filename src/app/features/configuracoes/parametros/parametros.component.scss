@@ -1,0 +1,15 @@
+.full {
+  width: min(920px, 100%);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+

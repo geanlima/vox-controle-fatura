@@ -1,0 +1,38 @@
+<div class="page pagina">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Parâmetros</h1>
+      <div class="page-subtitle">Configurações do sistema</div>
+    </div>
+  </div>
+
+  <mat-card class="card elev panel">
+    <mat-card-header>
+      <mat-card-title>API</mat-card-title>
+      <mat-card-subtitle>Defina a URL base usada nas chamadas (ex.: Render).</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <p *ngIf="erro()" class="erro">{{ erro() }}</p>
+      <p *ngIf="sucesso()" class="sucesso">{{ sucesso() }}</p>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>URL da API</mat-label>
+        <input matInput [(ngModel)]="valor" placeholder="https://seu-servico.onrender.com/api" />
+        <mat-hint>Valor atual em uso: {{ apiAtual() }}</mat-hint>
+      </mat-form-field>
+
+      <div class="actions">
+        <button mat-raised-button color="primary" type="button" (click)="salvar()" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar' }}
+        </button>
+        <button mat-stroked-button type="button" (click)="testar()" [disabled]="testando()">
+          {{ testando() ? 'Testando...' : 'Testar conexão' }}
+        </button>
+        <span class="spacer"></span>
+        <button mat-button type="button" (click)="restaurarPadrao()">Restaurar padrão</button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+

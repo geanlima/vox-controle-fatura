@@ -6,6 +6,7 @@ import { FaturaDetalheComponent } from './features/faturas/fatura-detalhe.compon
 import { CartoesListComponent } from './features/cartoes/cartoes-list.component';
 import { LayoutsListComponent } from './features/layouts/layouts-list.component';
 import { LancamentoManualComponent } from './features/lancamento-manual/lancamento-manual.component';
+import { ParametrosComponent } from './features/configuracoes/parametros/parametros.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'importar', pathMatch: 'full' },
@@ -16,4 +17,5 @@ export const routes: Routes = [
   { path: 'faturas/:id', component: FaturaDetalheComponent },
   { path: 'cartoes', component: CartoesListComponent },
   { path: 'layouts', component: LayoutsListComponent },
+  { path: 'configuracoes/parametros', component: ParametrosComponent },
 ];

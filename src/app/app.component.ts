@@ -37,18 +37,23 @@ export class AppComponent {
   cadastroAberto = signal(false);
   faturaAberto = signal(false);
   movimentoAberto = signal(false);
+  configuracoesAberto = signal(false);
 
   constructor() {
     this.bo.observe(['(min-width: 980px)']).subscribe((r) => this.isDesktop.set(r.matches));
   }
 
-  toggleGrupo(grupo: 'cadastro' | 'fatura' | 'movimento'): void {
+  toggleGrupo(grupo: 'cadastro' | 'fatura' | 'movimento' | 'configuracoes'): void {
     if (grupo === 'cadastro') {
       this.cadastroAberto.update((v) => !v);
       return;
     }
     if (grupo === 'fatura') {
       this.faturaAberto.update((v) => !v);
+      return;
+    }
+    if (grupo === 'configuracoes') {
+      this.configuracoesAberto.update((v) => !v);
       return;
     }
     this.movimentoAberto.update((v) => !v);
