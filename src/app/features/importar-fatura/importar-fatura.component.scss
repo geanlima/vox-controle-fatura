@@ -132,6 +132,14 @@
   margin: 0.35rem 0;
 }
 
+.campo-competencia-wrap {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.campo-competencia {
+  width: min(320px, 100%);
+}
+
 .tabela {
   .cel-desc {
     white-space: pre-line;

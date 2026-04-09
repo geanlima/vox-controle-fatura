@@ -58,7 +58,19 @@
       <div class="resumo-linhas" *ngIf="resultado as r">
         <p><strong>Banco:</strong> {{ r.banco }}</p>
         <p><strong>Cartão:</strong> {{ r.cartao }}</p>
-        <p><strong>Competência:</strong> {{ r.competencia }}</p>
+        <div class="campo-competencia-wrap">
+          <mat-form-field appearance="outline" class="campo-competencia">
+            <mat-label>Competência (mês/ano da fatura)</mat-label>
+            <input
+              matInput
+              [(ngModel)]="r.competencia"
+              (ngModelChange)="onCompetenciaAlterada()"
+              name="competenciaFatura"
+              placeholder="MM/AAAA"
+              autocomplete="off" />
+            <mat-hint>Ex.: 03/2026 — ajuste se o PDF trouxe o mês errado</mat-hint>
+          </mat-form-field>
+        </div>
         <p class="total-destaque"><strong>Total:</strong> {{ r.totalFatura | currency:'BRL' }}</p>
       </div>
 

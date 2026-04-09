@@ -242,6 +242,27 @@ export class ImportarFaturaComponent implements OnInit {
     }
   }
 
+  onCompetenciaAlterada(): void {
+    if (!this.resultado) return;
+    let c = (this.resultado.competencia ?? '').trim().replace(/\s+/g, '');
+    const m = c.match(/^(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      const mes = Number(m[1]);
+      const ano = m[2];
+      if (mes >= 1 && mes <= 12) {
+        c = `${String(mes).padStart(2, '0')}/${ano}`;
+      }
+    }
+    this.resultado.competencia = c;
+    this.syncMsg = '';
+    this.syncOk = null;
+    this.sincronizarEstado();
+  }
+
+  private competenciaValida(comp: string): boolean {
+    return /^(0[1-9]|1[0-2])\/\d{4}$/.test((comp || '').trim());
+  }
+
   async salvarFatura(): Promise<void> {
     this.erro = '';
     this.sucesso = '';
@@ -255,6 +276,12 @@ export class ImportarFaturaComponent implements OnInit {
     }
     if (!this.resultado || this.resultado.lancamentos.length === 0) {
       this.erro = 'Não há lançamentos para salvar.';
+      return;
+    }
+
+    this.onCompetenciaAlterada();
+    if (!this.competenciaValida(this.resultado.competencia)) {
+      this.erro = 'Informe a competência no formato MM/AAAA (ex.: 03/2026).';
       return;
     }
 

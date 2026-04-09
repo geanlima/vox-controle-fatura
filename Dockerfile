@@ -8,7 +8,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Build de produção (SSR + browser em dist/vox-controle-fatura)
+RUN npm run build -- --configuration production
 
 FROM node:20-alpine AS production
 

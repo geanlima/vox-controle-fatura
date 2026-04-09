@@ -1,6 +1,8 @@
 node_modules
 dist
 .angular
+# API é outro serviço (vox-finance-api/docker-compose); não entra na imagem do front
+vox-finance-api
 .git
 .gitignore
 **/.DS_Store
