@@ -136,9 +136,20 @@
           <th mat-header-cell *matHeaderCellDef>Valor</th>
           <td
             mat-cell
-            *matCellDef="let item"
+            *matCellDef="let item; let ri = index"
+            class="cel-valor"
             [class.valor-negativo]="isValorNegativo(item.valor)">
-            {{ item.valor | currency:'BRL' }}
+            <mat-form-field appearance="outline" class="cell-field cell-valor-field" subscriptSizing="dynamic">
+              <input
+                matInput
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                [ngModel]="valorEmEdicao(item)"
+                (ngModelChange)="onValorImportacaoInput(item, $event)"
+                (blur)="onValorImportacaoBlur(item)"
+                [name]="'valorImp_' + ri" />
+            </mat-form-field>
           </td>
         </ng-container>
 

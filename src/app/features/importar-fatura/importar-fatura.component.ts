@@ -57,6 +57,9 @@ export class ImportarFaturaComponent implements OnInit {
     'acoes',
   ];
 
+  /** Texto livre enquanto o usuário edita o valor (formato BR); commit no blur. */
+  private valorTextoPorLancamento = new WeakMap<LancamentoImportado, string>();
+
   constructor(
     private api: ImportacaoFaturaApiService,
     private faturaState: FaturaStateService,
@@ -312,6 +315,41 @@ export class ImportarFaturaComponent implements OnInit {
     } catch {
       this.erro = 'Erro ao salvar a fatura.';
     }
+  }
+
+  formatarValorParaEdicao(v: number): string {
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  valorEmEdicao(item: LancamentoImportado): string {
+    return this.valorTextoPorLancamento.get(item) ?? this.formatarValorParaEdicao(item.valor);
+  }
+
+  onValorImportacaoInput(item: LancamentoImportado, texto: string): void {
+    this.valorTextoPorLancamento.set(item, texto);
+  }
+
+  onValorImportacaoBlur(item: LancamentoImportado): void {
+    const texto = this.valorTextoPorLancamento.get(item);
+    this.valorTextoPorLancamento.delete(item);
+
+    const raw =
+      texto !== undefined
+        ? texto.trim()
+        : this.formatarValorParaEdicao(item.valor);
+
+    if (texto !== undefined && raw === '') {
+      return;
+    }
+
+    const v = this.parseValorEntrada(raw);
+    if (v === null) {
+      return;
+    }
+    item.valor = v;
+    this.recalcularTotal();
+    this.sincronizarEstado();
+    this.sucesso = '';
   }
 
   private parseValorEntrada(texto: string): number | null {

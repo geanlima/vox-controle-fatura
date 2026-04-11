@@ -87,10 +87,112 @@ export class ParserFaturaService {
 
     extrair(partNac, 'compra');
     if (partInt) {
-      extrair(partInt, 'internacional');
+      for (const item of this.extrairInternacionaisItauEmpresa(partInt)) {
+        lancamentos.push(item);
+      }
     }
 
     return lancamentos;
+  }
+
+  /**
+   * Internacional: cotação (R$) e valor (R$) podem vir em linhas diferentes no PDF.
+   * Agrupa linhas do mesmo lançamento (até a próxima data DD/MM ou rodapé) e usa o último R$.
+   */
+  private extrairInternacionaisItauEmpresa(bloco: string): Lancamento[] {
+    const resultado: Lancamento[] = [];
+    const reValorRs =
+      /R\$\s*(\(?\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})*|\d+)\s*,\s*\d{2}\s*\)?)/gi;
+
+    const linhas = bloco
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    const ehInicioLancamento = (s: string) => /^\d{2}\/\d{2}\s+\S/.test(s);
+    const ehRodapeOuNovaSecao = (s: string) => {
+      const u = s.trim();
+      return (
+        /^(total|repasse|data\s|descri)/i.test(u) ||
+        /^lan[cç]amentos?\s/i.test(u) ||
+        /^atualizado\s+em/i.test(u)
+      );
+    };
+
+    let i = 0;
+    while (i < linhas.length) {
+      const linha = linhas[i] ?? '';
+      if (!ehInicioLancamento(linha)) {
+        i++;
+        continue;
+      }
+
+      let buffer = linha;
+      i++;
+      while (i < linhas.length) {
+        const prox = linhas[i] ?? '';
+        if (ehInicioLancamento(prox)) {
+          break;
+        }
+        if (ehRodapeOuNovaSecao(prox)) {
+          break;
+        }
+        buffer += ` ${prox.trim()}`;
+        i++;
+      }
+
+      const mInicio = buffer.match(/^(\d{2}\/\d{2})\s+(.*)$/s);
+      if (!mInicio) {
+        continue;
+      }
+
+      const data = this.normalizarData(mInicio[1] ?? '');
+      const resto = (mInicio[2] ?? '').trim();
+
+      const valoresRs: string[] = [];
+      reValorRs.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = reValorRs.exec(resto)) !== null) {
+        valoresRs.push((m[1] ?? '').trim());
+      }
+
+      if (valoresRs.length === 0) {
+        continue;
+      }
+
+      const valorTexto = valoresRs[valoresRs.length - 1] ?? '';
+
+      const idxPrimeiroRs = resto.search(/R\$\s*/i);
+      const descricao =
+        idxPrimeiroRs >= 0
+          ? resto.slice(0, idxPrimeiroRs).trim().replace(/\s+/g, ' ')
+          : resto.replace(/\s+/g, ' ');
+
+      if (!descricao || this.deveIgnorarItauEmpresa(descricao)) {
+        continue;
+      }
+
+      if (this.deveIgnorarValorMarcadoNoPdf(valorTexto)) {
+        continue;
+      }
+
+      const valor = this.converterValor(valorTexto);
+
+      if (this.deveIgnorarLancamentoPorImagemReferencia(data, descricao, valor)) {
+        continue;
+      }
+
+      resultado.push({
+        id: crypto.randomUUID(),
+        data,
+        descricao,
+        valor,
+        categoria: this.categoriaService.classificar(descricao),
+        tipo: 'internacional',
+      });
+    }
+
+    return resultado;
   }
 
   private deveIgnorarItauEmpresa(descricao: string): boolean {

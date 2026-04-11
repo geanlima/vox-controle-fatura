@@ -163,6 +163,15 @@
   max-width: 120px;
 }
 
+.cel-valor {
+  vertical-align: middle;
+}
+
+.cell-valor-field {
+  min-width: 7.5rem;
+  max-width: 10rem;
+}
+
 ::host ::ng-deep .cell-field .mat-mdc-form-field-subscript-wrapper {
   display: none;
 }
