@@ -16,7 +16,7 @@ class Layout(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     nome: Mapped[str] = mapped_column(String(140), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(40), nullable=False)  # itau, itau-uniclass, generico
+    tipo: Mapped[str] = mapped_column(String(40), nullable=False)  # itau, itau-uniclass, itau-empresa, generico
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

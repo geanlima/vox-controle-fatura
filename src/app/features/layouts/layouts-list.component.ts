@@ -8,6 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 
+import { HttpErrorResponse } from '@angular/common/http';
+
 import { LayoutParserTipo } from '../../core/services/local-db.service';
 import { VoxFinanceApiService } from '../../core/services/vox-finance-api.service';
 
@@ -49,8 +51,8 @@ export class LayoutsListComponent implements OnInit {
     try {
       const rows = await this.api.listarLayouts();
       this.layouts = rows.map((l) => ({ id: l.id, nome: l.nome, tipo: l.tipo }));
-    } catch {
-      this.erro = 'Erro ao carregar layouts.';
+    } catch (e) {
+      this.erro = this.mensagemErroApi(e, 'Erro ao carregar layouts.');
     } finally {
       this.carregando = false;
     }
@@ -59,6 +61,7 @@ export class LayoutsListComponent implements OnInit {
   nomeTipo(tipo: LayoutParserTipo): string {
     if (tipo === 'itau') return 'Itaú';
     if (tipo === 'itau-uniclass') return 'Itaú Uniclass';
+    if (tipo === 'itau-empresa') return 'Itaú Empresa';
     return 'Genérico';
   }
 
@@ -74,8 +77,8 @@ export class LayoutsListComponent implements OnInit {
       this.nome = '';
       this.tipo = 'itau';
       await this.recarregar();
-    } catch {
-      this.erro = 'Erro ao criar layout.';
+    } catch (e) {
+      this.erro = this.mensagemErroApi(e, 'Erro ao criar layout.');
     }
   }
 
@@ -85,9 +88,9 @@ export class LayoutsListComponent implements OnInit {
     const n = nome.trim();
     if (!n) return;
 
-    const tipo = prompt('Tipo do parser: itau, itau-uniclass ou generico', l.tipo) as LayoutParserTipo | null;
+    const tipo = prompt('Tipo do parser: itau, itau-uniclass, itau-empresa ou generico', l.tipo) as LayoutParserTipo | null;
     if (tipo === null) return;
-    if (tipo !== 'itau' && tipo !== 'itau-uniclass' && tipo !== 'generico') {
+    if (tipo !== 'itau' && tipo !== 'itau-uniclass' && tipo !== 'itau-empresa' && tipo !== 'generico') {
       this.erro = 'Tipo inválido.';
       return;
     }
@@ -95,8 +98,8 @@ export class LayoutsListComponent implements OnInit {
     try {
       await this.api.patchLayout(l.id, { nome: n, tipo });
       await this.recarregar();
-    } catch {
-      this.erro = 'Erro ao atualizar layout.';
+    } catch (e) {
+      this.erro = this.mensagemErroApi(e, 'Erro ao atualizar layout.');
     }
   }
 
@@ -106,9 +109,36 @@ export class LayoutsListComponent implements OnInit {
     try {
       await this.api.excluirLayout(l.id);
       await this.recarregar();
-    } catch {
-      this.erro = 'Erro ao excluir layout.';
+    } catch (e) {
+      this.erro = this.mensagemErroApi(e, 'Erro ao excluir layout.');
     }
+  }
+
+  private mensagemErroApi(err: unknown, prefixo: string): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error;
+      let det = '';
+      if (typeof body === 'string' && body.trim()) {
+        det = body.trim();
+      } else if (body && typeof body === 'object' && 'detail' in body) {
+        const d = (body as { detail: unknown }).detail;
+        if (typeof d === 'string') {
+          det = d;
+        } else if (Array.isArray(d)) {
+          det = d
+            .map((x: { msg?: string; loc?: unknown[] }) => (typeof x?.msg === 'string' ? x.msg : JSON.stringify(x)))
+            .join(' ');
+        }
+      }
+      if (det) {
+        return `${prefixo} ${det}`;
+      }
+      if (err.status === 0) {
+        return `${prefixo} Sem resposta (CORS, API offline ou URL errada em Parâmetros).`;
+      }
+      return `${prefixo} HTTP ${err.status}.`;
+    }
+    return prefixo;
   }
 }
 

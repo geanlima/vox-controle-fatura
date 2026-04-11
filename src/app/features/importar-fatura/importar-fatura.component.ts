@@ -138,7 +138,12 @@ export class ImportarFaturaComponent implements OnInit {
     if (cartao.layoutId) {
       try {
         const l = await this.voxFinanceApi.obterLayout(cartao.layoutId);
-        if (l?.tipo === 'itau' || l?.tipo === 'itau-uniclass' || l?.tipo === 'generico') {
+        if (
+          l?.tipo === 'itau' ||
+          l?.tipo === 'itau-uniclass' ||
+          l?.tipo === 'itau-empresa' ||
+          l?.tipo === 'generico'
+        ) {
           layout = l.tipo;
         }
       } catch {

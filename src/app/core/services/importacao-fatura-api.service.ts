@@ -20,13 +20,13 @@ export class ImportacaoFaturaApiService {
 
   importarPdf(arquivo: File, layout: LayoutParserTipo = 'itau'): Observable<FaturaImportada> {
     return from(this.parser.processarPdf(arquivo, layout)).pipe(
-      map((fatura) => this.converterParaImportada(fatura))
+      map((fatura) => this.converterParaImportada(fatura, layout))
     );
   }
 
-  private converterParaImportada(fatura: Fatura): FaturaImportada {
+  private converterParaImportada(fatura: Fatura, layout: LayoutParserTipo): FaturaImportada {
     return {
-      banco: 'PDF (processamento local)',
+      banco: layout === 'itau-empresa' ? 'Itaú Empresas' : 'PDF (processamento local)',
       cartao: '—',
       competencia: fatura.competencia,
       totalFatura: fatura.valorTotal,

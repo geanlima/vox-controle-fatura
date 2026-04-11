@@ -2,14 +2,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+# Slug do parser (ex.: itau, itau-uniclass, itau-empresa). Evita lista fixa no deploy a cada novo layout.
+_TIPO_LAYOUT = r"^[a-z0-9]+(-[a-z0-9]+)*$"
+
+
 class LayoutCreate(BaseModel):
     nome: str
-    tipo: str = Field(pattern=r"^(itau|itau-uniclass|generico)$")
+    tipo: str = Field(min_length=2, max_length=40, pattern=_TIPO_LAYOUT)
 
 
 class LayoutPatch(BaseModel):
     nome: str | None = None
-    tipo: str | None = Field(default=None, pattern=r"^(itau|itau-uniclass|generico)$")
+    tipo: str | None = Field(default=None, min_length=2, max_length=40, pattern=_TIPO_LAYOUT)
 
 
 class LayoutOut(BaseModel):

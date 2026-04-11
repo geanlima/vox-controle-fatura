@@ -7,7 +7,7 @@ import { ApiConfigService } from './api-config.service';
 export type ApiLayoutOut = {
   id: string;
   nome: string;
-  tipo: 'itau' | 'itau-uniclass' | 'generico' | string;
+  tipo: 'itau' | 'itau-uniclass' | 'itau-empresa' | 'generico' | string;
   created_at: string;
   updated_at: string;
 };

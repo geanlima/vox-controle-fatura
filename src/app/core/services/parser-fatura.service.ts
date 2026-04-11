@@ -17,7 +17,7 @@ export class ParserFaturaService {
 
   processarTexto(texto: string, layout: LayoutParserTipo = 'itau'): Fatura {
     const lancamentos = this.removerDuplicatas(
-      this.ordenarLancamentosPorData(this.parse(texto))
+      this.ordenarLancamentosPorData(this.parseComLayout(texto, layout))
     );
 
     return {
@@ -26,6 +26,104 @@ export class ParserFaturaService {
       valorTotal: this.calcularTotal(lancamentos),
       lancamentos,
     };
+  }
+
+  private parseComLayout(texto: string, layout: LayoutParserTipo): Lancamento[] {
+    if (layout === 'itau-empresa') {
+      return this.parseItauEmpresa(texto);
+    }
+    return this.parse(texto);
+  }
+
+  /**
+   * Fatura Itaú Empresas: tabelas "Lançamentos nacionais" e "Lançamentos internacionais",
+   * colunas data / descrição / valor (internacional pode trazer cotação em linhas vizinhas).
+   */
+  private parseItauEmpresa(texto: string): Lancamento[] {
+    const lancamentos: Lancamento[] = [];
+    const textoNormalizado = texto
+      .replace(/\r/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{2,}/g, '\n');
+
+    const regexLancamento =
+      /(\d{2}\s*\/\s*\d{2})(?:\s*\/\s*\d{2,4})?\s+([^\n]*?)\s+(?:R\$\s*)?(\(?\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})*|\d+)\s*,\s*\d{2}\s*\)?\s*[-−]?)/g;
+
+    const lower = textoNormalizado.toLowerCase();
+    const idxIntern = lower.search(/lan[cç]amentos?\s+internacion/i);
+    const partNac = idxIntern >= 0 ? textoNormalizado.slice(0, idxIntern) : textoNormalizado;
+    const partInt = idxIntern >= 0 ? textoNormalizado.slice(idxIntern) : '';
+
+    const extrair = (bloco: string, tipo: 'compra' | 'internacional'): void => {
+      for (const match of bloco.matchAll(regexLancamento)) {
+        const data = this.normalizarData(match[1] ?? '');
+        const descricao = (match[2] ?? '').trim();
+        const valorTexto = (match[3] ?? '').trim();
+
+        if (!descricao || this.deveIgnorarItauEmpresa(descricao)) {
+          continue;
+        }
+
+        if (this.deveIgnorarValorMarcadoNoPdf(valorTexto)) {
+          continue;
+        }
+
+        const valor = this.converterValor(valorTexto);
+
+        if (this.deveIgnorarLancamentoPorImagemReferencia(data, descricao, valor)) {
+          continue;
+        }
+
+        lancamentos.push({
+          id: crypto.randomUUID(),
+          data,
+          descricao,
+          valor,
+          categoria: this.categoriaService.classificar(descricao),
+          tipo,
+        });
+      }
+    };
+
+    extrair(partNac, 'compra');
+    if (partInt) {
+      extrair(partInt, 'internacional');
+    }
+
+    return lancamentos;
+  }
+
+  private deveIgnorarItauEmpresa(descricao: string): boolean {
+    if (this.deveIgnorarLancamento(descricao)) {
+      return true;
+    }
+    const t = this.normalizarTexto(descricao);
+    const extrasFrases = [
+      'lancamentos nacionais',
+      'lancamentos internacionais',
+      'total de lancamentos',
+      'total da fatura',
+      'total de produtos',
+      'produtos, servicos e encargos',
+      'repasse de iof',
+      'itau empresas mastercard',
+      'melhor data para compra',
+      'limite total',
+      'limite disponivel',
+      'resumo da fatura',
+      'moeda local',
+      'moeda global',
+      'cotacao',
+      'atualizado em',
+    ];
+    if (extrasFrases.some((f) => t.includes(f))) {
+      return true;
+    }
+    // Linhas de titular / cartão (cabeçalho de grupo)
+    if (/^gean\s|^titular|^final\s*\d{4}/.test(t)) {
+      return true;
+    }
+    return false;
   }
 
   parse(texto: string): Lancamento[] {
@@ -143,7 +241,6 @@ export class ParserFaturaService {
       'encargos',
       'juros',
       'multa',
-      'iof',
       'anuidade',
       'credito rotativo',
       'parcelamento de fatura',
@@ -249,7 +346,7 @@ export class ParserFaturaService {
   private extrairCompetencia(texto: string, layout: LayoutParserTipo): string {
     // Hoje, Itaú e Genérico compartilham a mesma extração (MM/YYYY). Mantém o switch
     // para facilitar a inclusão de bancos com padrão diferente.
-    if (layout === 'itau' || layout === 'itau-uniclass' || layout === 'generico') {
+    if (layout === 'itau' || layout === 'itau-uniclass' || layout === 'itau-empresa' || layout === 'generico') {
       // 1) formato direto MM/YYYY
       const matchMesAno = texto.match(/\b(0[1-9]|1[0-2])\s*\/\s*(\d{4})\b/);
       if (matchMesAno) {
