@@ -62,6 +62,7 @@ export class LayoutsListComponent implements OnInit {
     if (tipo === 'itau') return 'Itaú';
     if (tipo === 'itau-uniclass') return 'Itaú Uniclass';
     if (tipo === 'itau-empresa') return 'Itaú Empresa';
+    if (tipo === 'mercado-pago-cc') return 'Mercado Pago (Cartão de Crédito)';
     return 'Genérico';
   }
 
@@ -88,9 +89,18 @@ export class LayoutsListComponent implements OnInit {
     const n = nome.trim();
     if (!n) return;
 
-    const tipo = prompt('Tipo do parser: itau, itau-uniclass, itau-empresa ou generico', l.tipo) as LayoutParserTipo | null;
+    const tipo = prompt(
+      'Tipo do parser: itau, itau-uniclass, itau-empresa, generico ou mercado-pago-cc',
+      l.tipo
+    ) as LayoutParserTipo | null;
     if (tipo === null) return;
-    if (tipo !== 'itau' && tipo !== 'itau-uniclass' && tipo !== 'itau-empresa' && tipo !== 'generico') {
+    if (
+      tipo !== 'itau' &&
+      tipo !== 'itau-uniclass' &&
+      tipo !== 'itau-empresa' &&
+      tipo !== 'generico' &&
+      tipo !== 'mercado-pago-cc'
+    ) {
       this.erro = 'Tipo inválido.';
       return;
     }

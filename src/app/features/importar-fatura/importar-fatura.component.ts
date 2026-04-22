@@ -145,7 +145,8 @@ export class ImportarFaturaComponent implements OnInit {
           l?.tipo === 'itau' ||
           l?.tipo === 'itau-uniclass' ||
           l?.tipo === 'itau-empresa' ||
-          l?.tipo === 'generico'
+          l?.tipo === 'generico' ||
+          l?.tipo === 'mercado-pago-cc'
         ) {
           layout = l.tipo;
         }

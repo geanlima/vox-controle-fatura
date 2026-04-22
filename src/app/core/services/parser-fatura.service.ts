@@ -32,7 +32,84 @@ export class ParserFaturaService {
     if (layout === 'itau-empresa') {
       return this.parseItauEmpresa(texto);
     }
+    if (layout === 'mercado-pago-cc') {
+      return this.parseMercadoPagoCc(texto);
+    }
     return this.parse(texto);
+  }
+
+  /**
+   * Mercado Pago (Cartão de Crédito): PDF traz tabelas "Movimentações na fatura" e "Cartão Visa".
+   * O parser genérico ignora termos como "juros/multa", mas no MP esses itens fazem parte da fatura
+   * e devem entrar como lançamentos. Também converte "pagamento" para valor negativo (crédito).
+   */
+  private parseMercadoPagoCc(texto: string): Lancamento[] {
+    const lancamentos: Lancamento[] = [];
+    const textoNormalizado = texto
+      .replace(/\r/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{2,}/g, '\n');
+
+    const linhas = textoNormalizado
+      .split('\n')
+      .map((l) => l.trim().replace(/\s+/g, ' '))
+      .filter((l) => l.length > 0);
+
+    const reLinhaLancamento =
+      /^(\d{2})\s*\/\s*(\d{2})\s+(.+?)\s+(?:R\$\s*)?(\(?\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})*|\d+)\s*,\s*\d{2}\s*\)?)\s*$/;
+
+    const deveIgnorarLinha = (linha: string): boolean => {
+      const t = this.normalizarTexto(linha);
+      if (!t) return true;
+      if (t === '-' || t.startsWith('=')) return true;
+      // Cabeçalhos e totais recorrentes no PDF do MP
+      if (t.includes('movimentacoes na fatura')) return true;
+      if (t.includes('detalhes de consumo')) return true;
+      if (t.startsWith('data movimentacoes valor')) return true;
+      if (t.startsWith('cartao visa')) return true;
+      if (/^total(\s|$)/.test(t)) return true;
+      if (t.includes('pague sua fatura')) return true;
+      return false;
+    };
+
+    for (const linha of linhas) {
+      if (deveIgnorarLinha(linha)) continue;
+
+      const m = linha.match(reLinhaLancamento);
+      if (!m) continue;
+
+      const data = this.normalizarData(`${m[1]}/${m[2]}`);
+      const descricao = (m[3] ?? '').trim();
+      const valorTexto = (m[4] ?? '').trim();
+
+      if (!descricao) continue;
+      if (this.deveIgnorarValorMarcadoNoPdf(valorTexto)) continue;
+
+      let valor = this.converterValor(valorTexto);
+
+      // No MP, "Pagamento ..." é crédito na fatura, mas vem sem sinal.
+      const descNorm = this.normalizarTexto(descricao);
+      const ehPagamento =
+        descNorm.includes('pagamento') || descNorm.includes('creditos devolvidos') || descNorm.includes('credito devolvido');
+      if (ehPagamento) {
+        valor = -Math.abs(valor);
+      }
+
+      // Heurística: mantém "compra" como tipo padrão (o app só diferencia 3 tipos).
+      // Se quiser evoluir depois, dá para mapear "saque" quando aparecer.
+      const tipo: Lancamento['tipo'] = descNorm.includes('saque') ? 'saque' : 'compra';
+
+      lancamentos.push({
+        id: crypto.randomUUID(),
+        data,
+        descricao,
+        valor,
+        categoria: this.categoriaService.classificar(descricao),
+        tipo,
+      });
+    }
+
+    return lancamentos;
   }
 
   /**

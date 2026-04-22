@@ -36,7 +36,7 @@ export interface CartaoCredito {
 
 export type CartaoCreditoResumo = Pick<CartaoCredito, 'id' | 'nome' | 'bandeira' | 'ultimos4' | 'layoutId'>;
 
-export type LayoutParserTipo = 'itau' | 'itau-uniclass' | 'itau-empresa' | 'generico';
+export type LayoutParserTipo = 'itau' | 'itau-uniclass' | 'itau-empresa' | 'generico' | 'mercado-pago-cc';
 
 export interface LayoutFatura {
   id: string;
